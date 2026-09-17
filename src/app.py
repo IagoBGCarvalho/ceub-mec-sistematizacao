@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as st_pd
 import pandas as pd
@@ -10,8 +11,14 @@ st.title("Análise de Tráfego de Rede utilizando amostras do dataset UNSW-NB15"
 
 @st.cache_data
 def carregar_dados():
-    # Carrega o dataset. Ajuste o nome do arquivo conforme o que você baixou.
-    df = pd.read_csv("../data/UNSW_NB15_testing-set.csv")
+    # Descobre o caminho absoluto da pasta onde este script (app.py) está rodando
+    diretorio_atual = os.path.dirname(os.path.abspath(__file__))
+    
+    # Constrói o caminho correto voltando uma pasta e entrando em 'data'
+    caminho_arquivo = os.path.join(diretorio_atual, "..", "data", "UNSW_NB15_testing-set.csv")
+    
+    # Carrega o CSV
+    df = pd.read_csv(caminho_arquivo)
     return df
 
 df = carregar_dados()
