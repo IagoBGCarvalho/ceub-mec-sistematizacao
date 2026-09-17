@@ -48,12 +48,10 @@ def test_percentil():
 
 def test_covariancia():
     resultado_nosso = minhastats.covariancia(DADOS_X, DADOS_Y, amostral=True)
-    # np.cov retorna uma matriz de covariância. O elemento [0][1] é a cov(X,Y)
     resultado_np = np.cov(DADOS_X, DADOS_Y, ddof=1)[0][1]
     assert resultado_nosso == pytest.approx(resultado_np)
 
 def test_correlacao_pearson():
     resultado_nosso = minhastats.correlacao_pearson(DADOS_X, DADOS_Y)
-    # stats.pearsonr retorna uma tupla (r, p-value), pegamos o primeiro elemento
     resultado_scipy = stats.pearsonr(DADOS_X, DADOS_Y)[0]
     assert resultado_nosso == pytest.approx(resultado_scipy)

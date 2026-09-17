@@ -1,10 +1,10 @@
 import math
+import random
 
 def media(dados):
     """
     Calcula a média aritmética simples.
     Fórmula: (Σ x_i) / n
-    Fonte: Bussab, W. O., & Morettin, P. A. (2010). Estatística Básica.
     """
     if not dados:
         raise ValueError("A lista de dados não pode estar vazia.")
@@ -82,7 +82,6 @@ def coeficiente_variacao(dados, amostral=True):
 def percentil(dados, p):
     """
     Calcula o percentil 'p' (0 a 100) usando interpolação linear.
-    Esta é a mesma regra usada no NumPy (interpolation='linear').
     """
     if not dados:
         raise ValueError("A lista de dados não pode estar vazia.")
@@ -92,7 +91,7 @@ def percentil(dados, p):
     ordenados = sorted(dados)
     n = len(ordenados)
     
-    # Índice real (pode ser fracionário)
+    # Índice real 
     k = (n - 1) * (p / 100.0)
     f = math.floor(k)
     c = math.ceil(k)
@@ -134,7 +133,7 @@ def correlacao_pearson(x, y):
     dp_y = desvio_padrao(y, amostral=True)
     
     if dp_x == 0 or dp_y == 0:
-        return 0.0 # Evita divisão por zero se uma das variáveis for constante
+        return 0.0 
         
     return cov / (dp_x * dp_y)
 
@@ -164,10 +163,51 @@ def interpretar_assimetria(dados):
     m = media(dados)
     md = mediana(dados)
     
-    # Adicionamos uma pequena margem de tolerância (0.5%) para considerar como simétrica
+    # Pequena margem de tolerância (0.5%) para considerar como simétrica
     if abs(m - md) / (m if m != 0 else 1) < 0.005:
         return "Distribuição Simétrica (Média ≈ Mediana). Os dados estão bem distribuídos em torno do centro."
     elif m > md:
         return "Assimetria Positiva / À Direita (Média > Mediana). Há outliers com valores muito altos puxando a média."
     else:
         return "Assimetria Negativa / À Esquerda (Média < Mediana). Há outliers com valores muito baixos puxando a média."
+
+def simular_frequencia_relativa(dados_categoricos, categoria_alvo, n_sorteios):
+    """
+    Simula inspeções aleatórias (amostragem com reposição) de uma lista de dados reais.
+    Demonstra a Lei dos Grandes Números rastreando a frequência da categoria alvo.
+    """
+    if not dados_categoricos:
+        raise ValueError("A lista de dados não pode estar vazia.")
+    if n_sorteios <= 0:
+        raise ValueError("O número de sorteios deve ser > 0.")
+        
+    proporcoes = []
+    sucessos = 0
+    n_dados = len(dados_categoricos)
+    
+    for i in range(1, n_sorteios + 1):
+        sorteado = dados_categoricos[random.randint(0, n_dados - 1)]
+        if sorteado == categoria_alvo:
+            sucessos += 1
+        proporcoes.append(sucessos / i)
+        
+    return proporcoes
+
+def gerar_medias_amostrais(dados, tamanho_amostra, n_repeticoes):
+    """
+    Sorteia amostras repetidas de um dataset e calcula a média de cada uma.
+    Demonstra o Teorema Central do Limite.
+    """
+    if not dados:
+        raise ValueError("A lista de dados não pode estar vazia.")
+    if tamanho_amostra <= 0 or n_repeticoes <= 0:
+        raise ValueError("Tamanho da amostra e repetições devem ser > 0.")
+        
+    medias = []
+    n_dados = len(dados)
+    
+    for _ in range(n_repeticoes):
+        amostra = [dados[random.randint(0, n_dados - 1)] for _ in range(tamanho_amostra)]
+        medias.append(media(amostra))
+        
+    return medias
