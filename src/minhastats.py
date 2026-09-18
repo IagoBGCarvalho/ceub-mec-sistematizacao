@@ -211,3 +211,23 @@ def gerar_medias_amostrais(dados, tamanho_amostra, n_repeticoes):
         medias.append(media(amostra))
         
     return medias
+
+def pdf_normal(x, mu, sigma):
+    """
+    Calcula a densidade de probabilidade da distribuição Normal.
+    Fórmula: (1 / (sigma * sqrt(2*pi))) * e^(-0.5 * ((x - mu)/sigma)^2)
+    """
+    if sigma == 0:
+        return 0.0
+    coeficiente = 1.0 / (sigma * math.sqrt(2 * math.pi))
+    expoente = -0.5 * ((x - mu) / sigma) ** 2
+    return coeficiente * math.exp(expoente)
+
+def pdf_exponencial(x, lambd):
+    """
+    Calcula a densidade de probabilidade da distribuição Exponencial.
+    Fórmula: lambda * e^(-lambda * x) para x >= 0
+    """
+    if x < 0 or lambd <= 0:
+        return 0.0
+    return lambd * math.exp(-lambd * x)

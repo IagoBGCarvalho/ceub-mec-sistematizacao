@@ -25,7 +25,8 @@ df = carregar_dados()
 st.sidebar.header("Navegação do Laboratório")
 modulo = st.sidebar.radio("Selecione a Análise", [
     "Módulo 2: Estatística Descritiva", 
-    "Módulo 3: Probabilidade e Simulação"
+    "Módulo 3: Probabilidade e Simulação",
+    "Módulo 4: Distribuições Teóricas"
 ])
 
 if modulo == "Módulo 2: Estatística Descritiva":
@@ -201,3 +202,60 @@ elif modulo == "Módulo 3: Probabilidade e Simulação":
     media_das_medias = minhastats.media(medias_amostrais)
     media_populacional = minhastats.media(dados_brutos)
     st.info(f"**Análise Matemática:** A média original de todos os pacotes é **{media_populacional:.2f}**. A média das médias das nossas {n_repeticoes} amostras é **{media_das_medias:.2f}**. Mesmo a distribuição original de `{var_tcl}` sendo totalmente caótica, as amostras convergiram para o formato de sino perfeitamente centralizado.")
+elif modulo == "Módulo 4: Distribuições Teóricas":
+    import numpy as np
+    
+    st.header("📐 Distribuições Teóricas vs. Dados Reais")
+    st.write("Aqui sobrepomos curvas matemáticas teóricas ao histograma real dos dados da rede para verificar se o tráfego segue um modelo matemático conhecido.")
+    
+    variaveis_numericas = ['dur', 'spkts', 'dpkts', 'sbytes', 'dbytes', 'rate', 'sttl', 'dttl']
+    var_dist = st.selectbox("Escolha uma variável contínua para modelagem teórica:", variaveis_numericas, index=0)
+    
+    # 1. Preparação e cálculos com núcleo próprio
+    dados_brutos = df[var_dist].dropna().tolist()
+    
+    # Filtro opcional para remover outliers extremos apenas para visualização
+    # Outliers achatam o gráfico e dificultam enxergar a curva
+    remover_outliers = st.checkbox("Remover outliers extremos para melhor visualização do ajuste?", value=True)
+    if remover_outliers:
+        inf, sup = minhastats.limites_iqr(dados_brutos)
+        # Filtra os dados mantendo apenas os "inliers"
+        dados_plot = [x for x in dados_brutos if inf <= x <= sup]
+    else:
+        dados_plot = dados_brutos
+        
+    media_val = minhastats.media(dados_plot)
+    dp_val = minhastats.desvio_padrao(dados_plot)
+    
+    # Parâmetro lambda para a distribuição Exponencial (taxa = 1 / média)
+    lambda_val = 1.0 / media_val if media_val > 0 else 0
+    
+    st.subheader(f"Ajuste Teórico para `{var_dist}`")
+    st.write(f"**Parâmetros Estimados:** Média ($\mu$) = {media_val:.4f} | Desvio Padrão ($\sigma$) = {dp_val:.4f} | Taxa ($\lambda$) = {lambda_val:.4f}")
+    
+    # 2. Construção do Eixo X e das Curvas Teóricas
+    x_min, x_max = min(dados_plot), max(dados_plot)
+    x_vals = np.linspace(x_min, x_max, 1000)
+    
+    y_normal = [minhastats.pdf_normal(x, media_val, dp_val) for x in x_vals]
+    y_exponencial = [minhastats.pdf_exponencial(x, lambda_val) for x in x_vals]
+    
+    # 3. Plotagem
+    fig_dist, ax_dist = plt.subplots(figsize=(12, 6))
+    
+    # Histograma (density=True é vital para a área somar 1 e alinhar com a curva de probabilidade)
+    ax_dist.hist(dados_plot, bins=50, density=True, alpha=0.5, color='skyblue', edgecolor='black', label='Dados Reais (Histograma)')
+    
+    # Curvas
+    ax_dist.plot(x_vals, y_normal, color='red', linewidth=2.5, linestyle='dashed', label='Distribuição Normal Teórica')
+    ax_dist.plot(x_vals, y_exponencial, color='purple', linewidth=2.5, label='Distribuição Exponencial Teórica')
+    
+    ax_dist.set_title(f"Ajuste de Distribuições - {var_dist}")
+    ax_dist.set_xlabel("Valores")
+    ax_dist.set_ylabel("Densidade")
+    ax_dist.legend()
+    
+    st.pyplot(fig_dist)
+    
+    # Discussão automática do ajuste
+    st.info("💡 **Discussão do Ajuste:** Repare como as curvas teóricas tentam modelar os blocos do histograma. Variáveis relacionadas a tempo (como `dur` - duração da conexão) geralmente decaem rapidamente, aproximando-se melhor do modelo **Exponencial** (linha roxa). A **Normal** (linha vermelha pontilhada) exige simetria, o que raramente ocorre no tráfego bruto de redes sem transformações logarítmicas.")
