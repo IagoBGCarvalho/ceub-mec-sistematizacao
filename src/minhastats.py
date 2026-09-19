@@ -125,17 +125,49 @@ def covariancia(x, y, amostral=True):
 
 def correlacao_pearson(x, y):
     """
-    Calcula o Coeficiente de Correlação de Pearson (r).
-    Fórmula: Cov(x,y) / (StdDev(x) * StdDev(y))
+    Calcula o coeficiente de correlação linear de Pearson (r).
+
+    Fórmula:
+        r = Cov(X, Y) / (Sx * Sy)
+
+    onde:
+        Cov(X, Y) = covariância amostral entre X e Y
+        Sx = desvio padrão amostral de X
+        Sy = desvio padrão amostral de Y
+
+    Retorna:
+        float: coeficiente de correlação de Pearson.
+
+    Levanta:
+        ValueError: se as listas tiverem tamanhos diferentes,
+                    possuírem menos de dois pares de observações
+                    ou alguma variável for constante.
     """
+
+    if len(x) != len(y):
+        raise ValueError(
+            "As listas X e Y devem ter o mesmo tamanho."
+        )
+
+    if len(x) < 2:
+        raise ValueError(
+            "A correlação de Pearson requer pelo menos 2 pares de dados."
+        )
+
     cov = covariancia(x, y, amostral=True)
+
     dp_x = desvio_padrao(x, amostral=True)
     dp_y = desvio_padrao(y, amostral=True)
-    
+
     if dp_x == 0 or dp_y == 0:
-        return 0.0 
-        
-    return cov / (dp_x * dp_y)
+        raise ValueError(
+            "A correlação de Pearson é indefinida "
+            "quando uma das variáveis é constante."
+        )
+
+    r = cov / (dp_x * dp_y)
+
+    return r
 
 def limites_iqr(dados):
     """
@@ -231,3 +263,4 @@ def pdf_exponencial(x, lambd):
     if x < 0 or lambd <= 0:
         return 0.0
     return lambd * math.exp(-lambd * x)
+
