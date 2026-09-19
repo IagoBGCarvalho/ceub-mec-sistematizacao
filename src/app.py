@@ -260,17 +260,24 @@ elif modulo == "Módulo 4: Distribuições Teóricas":
     
     # Discussão automática do ajuste
     st.info("💡 **Discussão do Ajuste:** Repare como as curvas teóricas tentam modelar os blocos do histograma. Variáveis relacionadas a tempo (como `dur` - duração da conexão) geralmente decaem rapidamente, aproximando-se melhor do modelo **Exponencial** (linha roxa). A **Normal** (linha vermelha pontilhada) exige simetria, o que raramente ocorre no tráfego bruto de redes sem transformações logarítmicas.")
-    
+
 elif modulo == "Módulo 5: Correlação e Regressão Linear":
-    st.header("Correlação e regressão linear")
-    st.write(
-        "Escolha duas características do tráfego para observar como elas variam em conjunto. Cada ponto representa um registro do dataset."
+    st.header(
+        "Correlação e regressão linear",
+        icon=":material/query_stats:",
     )
-    st.info(
-        "Correlação não implica causalidade. Uma associação entre duas variáveis não demonstra que uma seja a causa da outra."
+    st.markdown(
+        "Explore a associação linear entre duas características do tráfego "
+        "e ajuste uma reta por mínimos quadrados. Os resultados sempre se "
+        "referem ao grupo e ao protocolo selecionados."
+    )
+    st.warning(
+        "Correlação e regressão descrevem padrões nos dados, mas não "
+        "demonstram causalidade, não calculam a probabilidade de ataque e "
+        "não classificam um fluxo como normal ou malicioso.",
+        icon=":material/warning:",
     )
 
-    # Mantém as oito variáveis numéricas já utilizadas nos outros módulos.
     descricoes_m5 = {
         "dur": "Duração do fluxo (s)",
         "spkts": "Pacotes enviados pela origem",
@@ -282,338 +289,623 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
         "dttl": "TTL dos pacotes de destino",
     }
     variaveis_m5 = list(descricoes_m5)
+    variaveis_discretas_m5 = {
+        "spkts",
+        "dpkts",
+        "sbytes",
+        "dbytes",
+        "sttl",
+        "dttl",
+    }
+    variaveis_ttl_m5 = {"sttl", "dttl"}
 
-    st.sidebar.header("Configurações do Módulo 5")
+    def rotulo_variavel_m5(nome):
+        return f"{nome} — {descricoes_m5[nome]}"
+
+    def formatar_inteiro_m5(valor):
+        return f"{valor:,}".replace(",", ".")
+
+    st.sidebar.header(
+        "Configurações do Módulo 5",
+        icon=":material/tune:",
+    )
+
+    categorias_ataque_m5 = sorted(
+        categoria
+        for categoria in df["attack_cat"].dropna().unique()
+        if categoria != "Normal"
+    )
+
+    grupo_m5 = st.sidebar.selectbox(
+        "Grupo de tráfego",
+        options=[
+            "Todos os registros",
+            "Normal",
+            "Todos os ataques",
+        ]
+        + categorias_ataque_m5,
+        key="modulo5_grupo",
+        help=(
+            "As classes são rótulos já fornecidos pelo dataset e servem "
+            "para comparar grupos conhecidos."
+        ),
+    )
+
+    protocolo_m5 = st.sidebar.selectbox(
+        "Protocolo",
+        options=[
+            "Todos os protocolos",
+        ]
+        + sorted(df["proto"].dropna().unique()),
+        key="modulo5_protocolo",
+        help=(
+            "Restringir o protocolo reduz a mistura de comportamentos "
+            "de comunicação diferentes."
+        ),
+    )
 
     variavel_x = st.sidebar.selectbox(
-        "Variável X — explicativa",
+        "Variável X — eixo horizontal",
         options=variaveis_m5,
         index=variaveis_m5.index("spkts"),
-        format_func=lambda nome: f"{nome} — {descricoes_m5[nome]}",
+        format_func=rotulo_variavel_m5,
         key="modulo5_x",
-        help="Variável do eixo horizontal, usada para estimar Y na regressão.",
+        help="Variável usada pela reta para estimar Y.",
     )
+
     variavel_y = st.sidebar.selectbox(
-        "Variável Y — resposta",
+        "Variável Y — resposta estimada",
         options=variaveis_m5,
-        index=variaveis_m5.index("sbytes"),
-        format_func=lambda nome: f"{nome} — {descricoes_m5[nome]}",
+        index=variaveis_m5.index("dpkts"),
+        format_func=rotulo_variavel_m5,
         key="modulo5_y",
-        help="Variável do eixo vertical, cujo valor será estimado pela reta.",
+        help="Variável apresentada no eixo vertical e estimada pela reta.",
     )
 
     if variavel_x == variavel_y:
-        st.warning("Escolha duas variáveis diferentes para realizar a análise.")
+        st.warning(
+            "Escolha variáveis diferentes para X e Y.",
+            icon=":material/info:",
+        )
         st.stop()
 
-    # Seleciona as duas colunas juntas para preservar os pares de cada linha.
-    # A cópia permite preparar os dados sem alterar o DataFrame original.
-    dados_pares = df[[variavel_x, variavel_y]].copy()
+    if grupo_m5 == "Todos os registros":
+        dados_recorte_m5 = df
+    elif grupo_m5 == "Todos os ataques":
+        dados_recorte_m5 = df.loc[df["label"] == 1]
+    else:
+        dados_recorte_m5 = df.loc[df["attack_cat"] == grupo_m5]
 
-    # Trata infinitos como ausentes e remove a linha se X ou Y for inválido.
-    # Zeros e valores extremos finitos são mantidos.
+    if protocolo_m5 != "Todos os protocolos":
+        dados_recorte_m5 = dados_recorte_m5.loc[
+            dados_recorte_m5["proto"] == protocolo_m5
+        ]
+
+    # X e Y são selecionados juntos para preservar o pareamento por registro.
+    dados_pares = dados_recorte_m5[
+        [variavel_x, variavel_y]
+    ].copy()
+
+    # Somente valores ausentes ou infinitos são removidos.
+    # Zeros e valores extremos finitos são preservados.
     dados_pares = dados_pares.replace(
-        [float("inf"), float("-inf")], float("nan")
+        [float("inf"), float("-inf")],
+        float("nan"),
     ).dropna(subset=[variavel_x, variavel_y])
 
     total_registros = len(df)
+    total_recorte = len(dados_recorte_m5)
     total_pares = len(dados_pares)
-    total_excluidos = total_registros - total_pares
+    total_excluidos = total_recorte - total_pares
 
-    st.caption(
-        f"Registros do arquivo: {total_registros} | "
-        f"Pares válidos: {total_pares} | "
-        f"Registros excluídos neste par: {total_excluidos}"
-    )
-
-    if total_excluidos > 0:
-        st.warning(
-            f"Foram excluídos {total_excluidos} registros com valor ausente "
-            "ou infinito em pelo menos uma das variáveis escolhidas."
+    with st.container(border=True):
+        st.subheader(
+            "Escopo da análise",
+            icon=":material/filter_alt:",
         )
 
+        with st.container(horizontal=True):
+            st.metric(
+                "Registros no arquivo",
+                formatar_inteiro_m5(total_registros),
+                border=True,
+            )
+            st.metric(
+                "Registros no recorte",
+                formatar_inteiro_m5(total_recorte),
+                border=True,
+            )
+            st.metric(
+                "Pares válidos",
+                formatar_inteiro_m5(total_pares),
+                border=True,
+            )
+            st.metric(
+                "Pares excluídos",
+                formatar_inteiro_m5(total_excluidos),
+                border=True,
+                help="Valores ausentes ou infinitos em X ou Y.",
+            )
+
+        st.markdown(
+            f"**Recorte atual:** {grupo_m5} · {protocolo_m5}  \n"
+            f"**Pergunta analisada:** como **{variavel_x}** e "
+            f"**{variavel_y}** variam linearmente em conjunto?"
+        )
+        st.caption(
+            "Os filtros alteram a população analisada. Comparações entre "
+            "grupos devem manter o mesmo par X–Y e, preferencialmente, "
+            "o mesmo protocolo."
+        )
+
+        if grupo_m5 != "Todos os registros":
+            st.info(
+                "O grupo foi definido por um rótulo já conhecido no dataset. "
+                "Este recorte permite comparação descritiva, mas não simula "
+                "a classificação de um tráfego novo.",
+                icon=":material/label:",
+            )
+
+        if protocolo_m5 == "Todos os protocolos":
+            st.caption(
+                "O recorte mistura protocolos. Parte do resultado pode "
+                "refletir diferenças entre protocolos, além da relação "
+                "entre X e Y."
+            )
+
+        if total_excluidos > 0:
+            st.warning(
+                f"{formatar_inteiro_m5(total_excluidos)} registros foram "
+                "excluídos porque X ou Y continha valor ausente ou infinito.",
+                icon=":material/data_alert:",
+            )
+
     if total_pares < 2:
-        st.warning("São necessários pelo menos 2 pares válidos para continuar.")
+        st.warning(
+            "Este recorte possui menos de dois pares válidos. Selecione "
+            "outro grupo, protocolo ou par de variáveis.",
+            icon=":material/info:",
+        )
         st.stop()
 
-       # As mesmas listas alimentam os cálculos e o diagrama de dispersão.
     dados_x = dados_pares[variavel_x].tolist()
     dados_y = dados_pares[variavel_y].tolist()
 
-    x_minimo, x_maximo = min(dados_x), max(dados_x)
+    x_minimo = min(dados_x)
+    x_maximo = max(dados_x)
     x_constante = all(valor == dados_x[0] for valor in dados_x)
     y_constante = all(valor == dados_y[0] for valor in dados_y)
 
-    # None representa um resultado indisponível; zero pode ser válido.
     inclinacao = None
     intercepto = None
     r_pearson = None
     r_quadrado = None
+    y_estimado = []
+    x_reta = []
+    y_reta = []
 
     if x_constante:
         st.warning(
-            "X é constante neste conjunto de pares. Não é possível "
-            "determinar uma inclinação única nem calcular Pearson. "
-            "Escolha outra variável X. A dispersão permanece disponível."
+            "X é constante neste recorte. Não existe uma inclinação única "
+            "para a regressão, e Pearson também é indefinido. O diagrama "
+            "de dispersão permanece disponível.",
+            icon=":material/info:",
         )
     else:
         try:
-            # Todos os cálculos estatísticos vêm da biblioteca própria.
+            # Todos os resultados estatísticos vêm da biblioteca própria.
             inclinacao, intercepto = minhastats.regressao_linear(
-                dados_x, dados_y
+                dados_x,
+                dados_y,
             )
             y_estimado = [
-                minhastats.predicao_linear(x, inclinacao, intercepto)
+                minhastats.predicao_linear(
+                    x,
+                    inclinacao,
+                    intercepto,
+                )
                 for x in dados_x
             ]
 
             if not y_constante:
-                r_pearson = minhastats.correlacao_pearson(dados_x, dados_y)
+                r_pearson = minhastats.correlacao_pearson(
+                    dados_x,
+                    dados_y,
+                )
                 r_quadrado = minhastats.coeficiente_determinacao(
-                    dados_y, y_estimado
+                    dados_y,
+                    y_estimado,
                 )
 
-            # Dois pontos bastam para desenhar a reta já ajustada.
-            # O ajuste acima utiliza todos os pares válidos.
+            # A reta é desenhada entre os extremos de X, mas o ajuste usa
+            # todos os pares válidos.
             x_reta = [x_minimo, x_maximo]
             y_reta = [
-                minhastats.predicao_linear(x, inclinacao, intercepto)
+                minhastats.predicao_linear(
+                    x,
+                    inclinacao,
+                    intercepto,
+                )
                 for x in x_reta
             ]
         except (ValueError, ArithmeticError) as erro:
-            st.error(f"Não foi possível calcular o ajuste: {erro}")
+            st.error(
+                f"Não foi possível calcular o ajuste: {erro}",
+                icon=":material/error:",
+            )
             st.stop()
 
-        st.subheader("Resultados do ajuste")
+    if inclinacao is not None:
+        st.subheader(
+            "Resultados do ajuste",
+            icon=":material/analytics:",
+        )
 
         with st.container(horizontal=True):
             st.metric(
                 "Pearson (r)",
-                "Indefinido" if r_pearson is None else f"{r_pearson:.6f}",
+                (
+                    "Indefinido"
+                    if r_pearson is None
+                    else f"{r_pearson:.6f}"
+                ),
                 border=True,
             )
             st.metric(
-                "Coeficiente de determinação (R²)",
-                "Indefinido" if r_quadrado is None else f"{r_quadrado:.6f}",
+                "R² no recorte",
+                (
+                    "Indefinido"
+                    if r_quadrado is None
+                    else f"{r_quadrado:.6f}"
+                ),
                 border=True,
             )
-            st.metric("Inclinação (b)", f"{inclinacao:.6g}", border=True)
-            st.metric("Intercepto (a)", f"{intercepto:.6g}", border=True)
-
-        sinal = "+" if inclinacao >= 0 else "−"
-        st.markdown(
-            f"**Equação ajustada:** Ŷ = {intercepto:.8g} "
-            f"{sinal} {abs(inclinacao):.8g} × X"
-        )
-        st.caption(
-            f"X representa {variavel_x}; Y representa {variavel_y}. "
-            "O arredondamento é aplicado somente à apresentação."
-        )
-
-        if y_constante:
-            st.warning(
-                "Y é constante: o ajuste é horizontal, mas Pearson e R² "
-                "são indefinidos porque não há variação nos valores de Y."
+            st.metric(
+                "Inclinação (b)",
+                f"{inclinacao:.6g}",
+                border=True,
             )
-        else:
-            if r_pearson > 0:
-                direcao = "positiva"
-            elif r_pearson < 0:
-                direcao = "negativa"
-            else:
-                direcao = "nula"
+            st.metric(
+                "Intercepto (a)",
+                f"{intercepto:.6g}",
+                border=True,
+            )
+
+        with st.container(border=True):
+            sinal = "+" if inclinacao >= 0 else "−"
 
             st.markdown(
-                f"**Pearson:** associação linear {direcao} neste conjunto "
-                "de pares. Valores próximos de zero não descartam "
-                "relações não lineares."
+                f"**Equação ajustada:** Ŷ = {intercepto:.8g} "
+                f"{sinal} {abs(inclinacao):.8g} × X"
             )
-            st.markdown(
-                f"**R²:** aproximadamente {100 * r_quadrado:.2f}% da "
-                f"variação de {variavel_y} em torno de sua média é "
-                "explicada pelo ajuste linear nestes dados."
-            )
-
-        st.markdown(
-            f"**Inclinação:** no modelo ajustado, aumentar {variavel_x} "
-            f"em uma unidade corresponde a uma variação de "
-            f"{inclinacao:.6g} unidades no valor estimado de {variavel_y}."
-        )
-        st.markdown(
-            f"**Intercepto:** o modelo estima {variavel_y} em "
-            f"{intercepto:.6g} quando {variavel_x} é igual a zero."
-        )
-
-        if not x_minimo <= 0 <= x_maximo:
             st.caption(
-                "X = 0 está fora da faixa observada. A interpretação do "
-                "intercepto envolve extrapolação e exige cuidado."
+                f"X representa {variavel_x}; Y representa {variavel_y}. "
+                "O arredondamento ocorre somente na apresentação."
             )
 
-        # Uma reta sem restrições pode prever valores incompatíveis
-        # com variáveis não negativas, mesmo dentro da faixa observada.
-        if min(dados_y) >= 0 and min(y_estimado) < 0:
-            st.warning(
-                "Y possui apenas valores observados não negativos, mas "
-                "a reta produz estimativas negativas para parte dos "
-                "valores de X observados. Isso indica uma limitação do "
-                "modelo linear para representar essa variável."
-            )
-
-        st.caption(
-            "O R² foi calculado nos mesmos dados usados para ajustar "
-            "a reta. Ele não mede, por si só, o desempenho em novos dados."
-        )
-
-    st.subheader("Diagrama de dispersão e reta ajustada")
-
-    fig_m5, ax_m5 = plt.subplots(figsize=(10, 5))
-    ax_m5.scatter(
-        dados_x,
-        dados_y,
-        s=10,
-        alpha=0.25,
-        color="steelblue",
-        linewidths=0,
-        label="Registros observados",
-    )
-
-    # Inclinação zero também representa uma reta válida.
-    if inclinacao is not None:
-        ax_m5.plot(
-            x_reta,
-            y_reta,
-            color="darkorange",
-            linewidth=2,
-            label="Regressão por mínimos quadrados",
-        )
-
-    ax_m5.set_xlabel(f"{variavel_x} — {descricoes_m5[variavel_x]}")
-    ax_m5.set_ylabel(f"{variavel_y} — {descricoes_m5[variavel_y]}")
-    ax_m5.set_title(f"{variavel_y} em função de {variavel_x}")
-    ax_m5.grid(alpha=0.2)
-    ax_m5.legend()
-    fig_m5.tight_layout()
-
-    st.pyplot(fig_m5, width="stretch")
-    plt.close(fig_m5)
-
-    st.caption(
-        "Todos os pares válidos são utilizados, em escala linear e com "
-        "valores extremos preservados. Quando disponível, a reta é "
-        "exibida entre o menor e o maior X observado."
-    )
-
-    st.subheader("Conferência dos pares")
-    
-    st.subheader("Predição interativa")
-
-    if inclinacao is None:
-        st.info(
-            "A predição requer uma reta ajustada. Escolha uma variável X "
-            "que apresente variação nos dados."
-        )
-    else:
-        # Essas regras descrevem as variáveis oferecidas pelo Módulo 5.
-        variaveis_discretas_m5 = {
-            "spkts", "dpkts", "sbytes", "dbytes", "sttl", "dttl"
-        }
-        variaveis_ttl_m5 = {"sttl", "dttl"}
-
-        st.caption(
-            f"X: {descricoes_m5[variavel_x]}. "
-            f"Faixa observada: de {x_minimo:.10g} a {x_maximo:.10g}."
-        )
-
-        # A chave depende do par para evitar reutilizar uma entrada
-        # feita para variáveis com outros significados ou unidades.
-        x_informado = st.number_input(
-            f"Informe X — {variavel_x}",
-            value=None,
-            step=1.0 if variavel_x in variaveis_discretas_m5 else 0.1,
-            format="%.10g",
-            placeholder="Digite um valor para calcular Ŷ",
-            key=f"modulo5_predicao_{variavel_x}_{variavel_y}",
-            help=(
-                "Confirme com Enter ou saia do campo para calcular. "
-                "Valores fora da faixa observada serão sinalizados."
-            ),
-        )
-
-        if x_informado is None:
-            st.info("Informe um valor de X para consultar a reta ajustada.")
-        elif x_informado < 0:
-            st.error(
-                f"{variavel_x} não admite valores negativos neste contexto."
-            )
-        elif (
-            variavel_x in variaveis_discretas_m5
-            and not float(x_informado).is_integer()
-        ):
-            st.error(
-                f"{variavel_x} representa valores inteiros. "
-                "Informe um número sem parte fracionária."
-            )
-        elif variavel_x in variaveis_ttl_m5 and x_informado > 255:
-            st.error("O valor de TTL deve estar entre 0 e 255.")
-        else:
-            try:
-                # Consulta a função própria com os coeficientes completos.
-                y_previsto = minhastats.predicao_linear(
-                    x_informado, inclinacao, intercepto
+            if y_constante:
+                st.warning(
+                    "Y é constante neste recorte. A reta horizontal pode "
+                    "ser calculada, mas Pearson e R² são indefinidos porque "
+                    "não existe variação em Y.",
+                    icon=":material/info:",
                 )
-            except (ValueError, ArithmeticError) as erro:
-                st.error(f"Não foi possível calcular a predição: {erro}")
             else:
-                st.metric(
-                    f"Ŷ estimado — {variavel_y}",
-                    f"{y_previsto:.10g}",
-                    help=descricoes_m5[variavel_y],
-                    border=True,
+                if r_pearson > 0:
+                    direcao = "positiva"
+                elif r_pearson < 0:
+                    direcao = "negativa"
+                else:
+                    direcao = "nula"
+
+                st.markdown(
+                    f"**Pearson:** a associação linear é **{direcao}** "
+                    "neste recorte. O coeficiente informa direção e "
+                    "intensidade linear; valores próximos de zero não "
+                    "descartam relações não lineares ou subgrupos distintos."
                 )
-                st.caption(
-                    f"Para {variavel_x} = {x_informado:.10g}, o modelo "
-                    f"estima {variavel_y} = {y_previsto:.10g}."
+                st.markdown(
+                    f"**R²:** a reta representa aproximadamente "
+                    f"**{100 * r_quadrado:.2f}%** da variação observada "
+                    f"de {variavel_y} em torno de sua média, nos mesmos "
+                    "dados usados no ajuste. Isso não é uma porcentagem "
+                    "de previsões corretas."
                 )
 
-                if x_informado < x_minimo or x_informado > x_maximo:
-                    st.warning(
-                        "Extrapolação: o X informado está fora da faixa "
-                        "observada no ajuste. A relação estimada pode "
-                        "não se manter nessa região."
+            st.markdown(
+                f"**Inclinação:** ao percorrer a reta, um aumento de uma "
+                f"unidade em {variavel_x} altera Ŷ em "
+                f"{inclinacao:.6g} unidades de {variavel_y}. "
+                "Esse coeficiente descreve o ajuste e não um efeito causal."
+            )
+            st.markdown(
+                f"**Intercepto:** quando X = 0, a reta retorna "
+                f"{intercepto:.6g} para {variavel_y}."
+            )
+
+            if not x_minimo <= 0 <= x_maximo:
+                st.caption(
+                    "X = 0 está fora da faixa observada neste recorte. "
+                    "Nesse caso, o intercepto é necessário para definir "
+                    "a reta, mas sua interpretação prática envolve "
+                    "extrapolação."
+                )
+
+            estimativas_negativas = sum(
+                valor < 0
+                for valor in y_estimado
+            )
+            if min(dados_y) >= 0 and estimativas_negativas > 0:
+                percentual_negativas = (
+                    100 * estimativas_negativas / total_pares
+                )
+                st.warning(
+                    f"A reta gera {formatar_inteiro_m5(estimativas_negativas)} "
+                    f"estimativas negativas ({percentual_negativas:.2f}% "
+                    "dos pares), embora Y seja uma variável não negativa. "
+                    "Esse resultado é matematicamente possível, mas indica "
+                    "limitação prática do modelo linear.",
+                    icon=":material/warning:",
+                )
+
+    with st.container(border=True):
+        st.subheader(
+            "Diagrama de dispersão e reta ajustada",
+            icon=":material/scatter_plot:",
+        )
+
+        fig_m5, ax_m5 = plt.subplots(figsize=(10, 5.5))
+        ax_m5.scatter(
+            dados_x,
+            dados_y,
+            s=10,
+            alpha=0.25,
+            color="steelblue",
+            linewidths=0,
+            rasterized=True,
+            label="Registros observados",
+        )
+
+        if inclinacao is not None:
+            ax_m5.plot(
+                x_reta,
+                y_reta,
+                color="darkorange",
+                linewidth=2,
+                label="Regressão por mínimos quadrados",
+            )
+
+        ax_m5.set_xlabel(rotulo_variavel_m5(variavel_x))
+        ax_m5.set_ylabel(rotulo_variavel_m5(variavel_y))
+        ax_m5.set_title(
+            f"{variavel_y} em função de {variavel_x} "
+            f"— {grupo_m5} · {protocolo_m5}"
+        )
+        ax_m5.grid(alpha=0.2)
+        ax_m5.legend()
+        fig_m5.tight_layout()
+
+        st.pyplot(fig_m5, width="stretch")
+        plt.close(fig_m5)
+
+        st.caption(
+            "O gráfico utiliza todos os pares válidos do recorte, em "
+            "escala linear, mantendo zeros e valores extremos finitos. "
+            "A reta é exibida entre o menor e o maior X observado."
+        )
+
+    with st.container(border=True):
+        st.subheader(
+            "Como interpretar sem produzir falsos diagnósticos",
+            icon=":material/fact_check:",
+        )
+        st.markdown(
+            f"**O que está sendo avaliado:** a associação linear entre "
+            f"{variavel_x} e {variavel_y} nos "
+            f"{formatar_inteiro_m5(total_pares)} pares do recorte atual."
+        )
+        st.markdown(
+            "**O que o resultado pode fornecer:** direção da associação "
+            "linear, uma reta descritiva, comparação entre recortes "
+            "equivalentes e uma estimativa numérica de Y."
+        )
+        st.markdown(
+            "**O que o resultado não fornece:** causa do comportamento, "
+            "significância estatística, probabilidade de ataque, classe "
+            "de um novo fluxo ou garantia de desempenho fora destes dados."
+        )
+        st.markdown(
+            "**Como comparar filtros:** mantenha X e Y fixos e altere um "
+            "filtro por vez. Uma mudança nos coeficientes pode decorrer "
+            "do grupo, do protocolo, do tamanho do recorte, dos zeros ou "
+            "dos valores extremos."
+        )
+
+        if r_quadrado is not None:
+            st.caption(
+                "R² e Pearson resumem aspectos específicos da relação. "
+                "Mesmo valores elevados precisam ser avaliados junto ao "
+                "diagrama de dispersão e, em uma próxima etapa, aos resíduos."
+            )
+
+    with st.container(border=True):
+        st.subheader(
+            "Predição interativa de Y",
+            icon=":material/calculate:",
+        )
+        st.caption(
+            "A predição consulta a reta do recorte atual. Ela estima "
+            "somente Y; não calcula risco, probabilidade ou classe de ataque."
+        )
+
+        if inclinacao is None:
+            st.info(
+                "A predição requer uma reta ajustada. Escolha uma variável "
+                "X que apresente variação no recorte.",
+                icon=":material/info:",
+            )
+        else:
+            st.caption(
+                f"X: {descricoes_m5[variavel_x]}. "
+                f"Faixa observada: {x_minimo:.10g} a {x_maximo:.10g}."
+            )
+
+            # A chave separa entradas pertencentes a modelos diferentes.
+            x_informado = st.number_input(
+                f"Informe X — {variavel_x}",
+                value=None,
+                step=(
+                    1.0
+                    if variavel_x in variaveis_discretas_m5
+                    else 0.1
+                ),
+                format="%.10g",
+                placeholder="Digite um valor para calcular Ŷ",
+                key=(
+                    f"modulo5_predicao_{variavel_x}_{variavel_y}_"
+                    f"{grupo_m5}_{protocolo_m5}"
+                ),
+                help=(
+                    "Confirme com Enter ou saia do campo. Valores fora "
+                    "da faixa observada serão identificados como extrapolação."
+                ),
+            )
+
+            if x_informado is None:
+                st.info(
+                    "Informe um valor de X para consultar a reta.",
+                    icon=":material/info:",
+                )
+            elif x_informado < 0:
+                st.error(
+                    f"{variavel_x} não admite valor negativo neste módulo.",
+                    icon=":material/error:",
+                )
+            elif (
+                variavel_x in variaveis_discretas_m5
+                and not float(x_informado).is_integer()
+            ):
+                st.error(
+                    f"{variavel_x} representa uma quantidade inteira. "
+                    "Informe um valor sem parte fracionária.",
+                    icon=":material/error:",
+                )
+            elif (
+                variavel_x in variaveis_ttl_m5
+                and x_informado > 255
+            ):
+                st.error(
+                    "TTL deve estar entre 0 e 255.",
+                    icon=":material/error:",
+                )
+            else:
+                try:
+                    y_previsto = minhastats.predicao_linear(
+                        x_informado,
+                        inclinacao,
+                        intercepto,
+                    )
+                except (ValueError, ArithmeticError) as erro:
+                    st.error(
+                        f"Não foi possível calcular a predição: {erro}",
+                        icon=":material/error:",
                     )
                 else:
+                    st.metric(
+                        f"Ŷ estimado — {variavel_y}",
+                        f"{y_previsto:.10g}",
+                        help=descricoes_m5[variavel_y],
+                        border=True,
+                    )
                     st.caption(
-                        "X está dentro da faixa observada. Isso, por si só, "
-                        "não garante uma predição adequada."
+                        f"Para {variavel_x} = {x_informado:.10g}, "
+                        f"a reta estima {variavel_y} = {y_previsto:.10g}."
                     )
 
-                # As oito variáveis deste módulo são não negativas.
-                # O resultado matemático é preservado e sua limitação é indicada.
-                if y_previsto < 0:
-                    st.warning(
-                        "A reta retornou um valor negativo, incompatível "
-                        f"com o significado de {variavel_y}. O resultado "
-                        "indica uma limitação do modelo e não deve ser "
-                        "interpretado como uma quantidade observável."
-                    )
-                elif variavel_y in variaveis_ttl_m5 and y_previsto > 255:
-                    st.warning(
-                        "A estimativa ultrapassa 255, o limite do campo TTL. "
-                        "Isso indica uma limitação do modelo para esse X."
-                    )
+                    if (
+                        x_informado < x_minimo
+                        or x_informado > x_maximo
+                    ):
+                        st.warning(
+                            "Extrapolação: X está fora da faixa observada "
+                            "neste recorte. A relação estimada pode não se "
+                            "manter nessa região.",
+                            icon=":material/warning:",
+                        )
+                    else:
+                        st.caption(
+                            "X está dentro da faixa observada, mas isso "
+                            "não garante que a estimativa seja adequada "
+                            "para um registro individual."
+                        )
 
-                if variavel_y in variaveis_discretas_m5:
+                    if y_previsto < 0:
+                        st.warning(
+                            "A reta retornou um valor negativo para uma "
+                            "variável não negativa. Preserve o resultado "
+                            "matemático, mas não o interprete como uma "
+                            "quantidade fisicamente observável.",
+                            icon=":material/warning:",
+                        )
+                    elif (
+                        variavel_y in variaveis_ttl_m5
+                        and y_previsto > 255
+                    ):
+                        st.warning(
+                            "A estimativa ultrapassa 255, limite do campo "
+                            "TTL. Isso indica inadequação prática da reta "
+                            "para esse valor de X.",
+                            icon=":material/warning:",
+                        )
+
+                    if variavel_y in variaveis_discretas_m5:
+                        st.caption(
+                            "A regressão é contínua e pode produzir Ŷ "
+                            "fracionário mesmo quando Y é uma contagem "
+                            "ou outro campo inteiro."
+                        )
+
+                    if grupo_m5 != "Todos os registros":
+                        st.caption(
+                            "A estimativa está condicionada a uma classe "
+                            "já conhecida. Ela não descobre a classe do fluxo."
+                        )
+
                     st.caption(
-                        "A reta produz uma estimativa contínua, que pode "
-                        "ser fracionária mesmo quando Y é uma contagem "
-                        "ou outra variável inteira."
+                        "Ŷ é uma estimativa pontual, sem intervalo de "
+                        "predição. Não representa uma observação real nem "
+                        "uma garantia de resultado futuro."
                     )
 
-                st.caption(
-                    "Ŷ é uma estimativa pontual do modelo, sem intervalo "
-                    "de predição calculado. Não representa um registro "
-                    "observado nem uma garantia do resultado."
-                )
-    st.write("Primeiros 10 registros válidos das duas variáveis selecionadas:")
-    st.dataframe(dados_pares.head(10), hide_index=True, width="stretch")
+    with st.expander(
+        "Perguntas recomendadas para explorar os dados",
+        icon=":material/lightbulb:",
+    ):
+        st.markdown(
+            "- **spkts × dpkts:** compare a relação entre pacotes nas duas "
+            "direções, mantendo o mesmo protocolo nos grupos Normal e "
+            "Todos os ataques.\n"
+            "- **spkts × sbytes:** observe a relação estrutural entre "
+            "quantidade de pacotes e bytes e verifique a influência dos "
+            "valores extremos.\n"
+            "- **sbytes × dbytes:** compare os volumes nas duas direções "
+            "e veja se a relação muda conforme o protocolo.\n"
+            "- **dur × rate:** use com cautela, porque a taxa é derivada "
+            "de contagens e duração; associação não significa independência.\n"
+            "- **sttl e dttl:** poucos valores distintos podem tornar "
+            "gráficos de frequência mais informativos que uma reta."
+        )
+
+    with st.expander(
+        "Conferência dos pares utilizados",
+        icon=":material/table_view:",
+    ):
+        st.caption(
+            "A tabela mostra somente os dez primeiros pares válidos. "
+            "Todos os pares informados no escopo participam dos cálculos."
+        )
+        st.dataframe(
+            dados_pares.head(10),
+            hide_index=True,
+            width="stretch",
+        )
