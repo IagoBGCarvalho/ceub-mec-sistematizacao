@@ -26,7 +26,8 @@ st.sidebar.header("Navegação do Laboratório")
 modulo = st.sidebar.radio("Selecione a Análise", [
     "Módulo 2: Estatística Descritiva", 
     "Módulo 3: Probabilidade e Simulação",
-    "Módulo 4: Distribuições Teóricas"
+    "Módulo 4: Distribuições Teóricas",
+    "Módulo 5: Correlação e Regressão Linear",
 ])
 
 if modulo == "Módulo 2: Estatística Descritiva":
@@ -259,3 +260,113 @@ elif modulo == "Módulo 4: Distribuições Teóricas":
     
     # Discussão automática do ajuste
     st.info("💡 **Discussão do Ajuste:** Repare como as curvas teóricas tentam modelar os blocos do histograma. Variáveis relacionadas a tempo (como `dur` - duração da conexão) geralmente decaem rapidamente, aproximando-se melhor do modelo **Exponencial** (linha roxa). A **Normal** (linha vermelha pontilhada) exige simetria, o que raramente ocorre no tráfego bruto de redes sem transformações logarítmicas.")
+elif modulo == "Módulo 5: Correlação e Regressão Linear":
+    st.header("Correlação e regressão linear")
+    st.write(
+        "Escolha duas características do tráfego para observar como elas "
+        "variam em conjunto. Cada ponto representa um registro do dataset."
+    )
+    st.info(
+        "Correlação não implica causalidade. Uma associação entre duas "
+        "variáveis não demonstra que uma seja a causa da outra."
+    )
+
+    # Mantém as oito variáveis numéricas já utilizadas nos outros módulos.
+    descricoes_m5 = {
+        "dur": "Duração do fluxo (s)",
+        "spkts": "Pacotes enviados pela origem",
+        "dpkts": "Pacotes enviados pelo destino",
+        "sbytes": "Bytes enviados pela origem",
+        "dbytes": "Bytes enviados pelo destino",
+        "rate": "Taxa de pacotes (pacotes/s)",
+        "sttl": "TTL dos pacotes de origem",
+        "dttl": "TTL dos pacotes de destino",
+    }
+    variaveis_m5 = list(descricoes_m5)
+
+    st.sidebar.header("Configurações do Módulo 5")
+
+    variavel_x = st.sidebar.selectbox(
+        "Variável X — explicativa",
+        options=variaveis_m5,
+        index=variaveis_m5.index("spkts"),
+        format_func=lambda nome: f"{nome} — {descricoes_m5[nome]}",
+        key="modulo5_x",
+        help="Variável do eixo horizontal, usada para estimar Y na regressão.",
+    )
+    variavel_y = st.sidebar.selectbox(
+        "Variável Y — resposta",
+        options=variaveis_m5,
+        index=variaveis_m5.index("sbytes"),
+        format_func=lambda nome: f"{nome} — {descricoes_m5[nome]}",
+        key="modulo5_y",
+        help="Variável do eixo vertical, cujo valor será estimado pela reta.",
+    )
+
+    if variavel_x == variavel_y:
+        st.warning("Escolha duas variáveis diferentes para realizar a análise.")
+        st.stop()
+
+    # Seleciona as duas colunas juntas para preservar os pares de cada linha.
+    # A cópia permite preparar os dados sem alterar o DataFrame original.
+    dados_pares = df[[variavel_x, variavel_y]].copy()
+
+    # Trata infinitos como ausentes e remove a linha se X ou Y for inválido.
+    # Zeros e valores extremos finitos são mantidos.
+    dados_pares = dados_pares.replace(
+        [float("inf"), float("-inf")], float("nan")
+    ).dropna(subset=[variavel_x, variavel_y])
+
+    total_registros = len(df)
+    total_pares = len(dados_pares)
+    total_excluidos = total_registros - total_pares
+
+    st.caption(
+        f"Registros do arquivo: {total_registros} | "
+        f"Pares válidos: {total_pares} | "
+        f"Registros excluídos neste par: {total_excluidos}"
+    )
+
+    if total_excluidos > 0:
+        st.warning(
+            f"Foram excluídos {total_excluidos} registros com valor ausente "
+            "ou infinito em pelo menos uma das variáveis escolhidas."
+        )
+
+    if total_pares < 2:
+        st.warning("São necessários pelo menos 2 pares válidos para continuar.")
+        st.stop()
+
+    # As listas têm a mesma ordem e serão usadas pelo núcleo estatístico.
+    dados_x = dados_pares[variavel_x].tolist()
+    dados_y = dados_pares[variavel_y].tolist()
+
+    st.subheader("Diagrama de dispersão")
+
+    fig_m5, ax_m5 = plt.subplots(figsize=(10, 5))
+    ax_m5.scatter(
+        dados_x,
+        dados_y,
+        s=10,
+        alpha=0.25,
+        color="steelblue",
+        linewidths=0,
+    )
+    ax_m5.set_xlabel(f"{variavel_x} — {descricoes_m5[variavel_x]}")
+    ax_m5.set_ylabel(f"{variavel_y} — {descricoes_m5[variavel_y]}")
+    ax_m5.set_title(f"{variavel_y} em função de {variavel_x}")
+    ax_m5.grid(alpha=0.2)
+    fig_m5.tight_layout()
+
+    st.pyplot(fig_m5, width="stretch")
+    plt.close(fig_m5)
+
+    st.caption(
+        "O gráfico utiliza todos os pares válidos, em escala linear, "
+        "com os valores extremos preservados. Pontos sobrepostos podem "
+        "representar vários registros."
+    )
+
+    st.subheader("Conferência dos pares")
+    st.write("Primeiros 10 registros válidos das duas variáveis selecionadas:")
+    st.dataframe(dados_pares.head(10), hide_index=True, width="stretch")
