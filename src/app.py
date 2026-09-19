@@ -338,7 +338,6 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
 
        # As mesmas listas alimentam os cálculos e o diagrama de dispersão.
     dados_x = dados_pares[variavel_x].tolist()
-    dados_x = dados_pares[variavel_x].tolist()
     dados_y = dados_pares[variavel_y].tolist()
 
     x_minimo, x_maximo = min(dados_x), max(dados_x)
@@ -506,5 +505,115 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
     )
 
     st.subheader("Conferência dos pares")
+    
+    st.subheader("Predição interativa")
+
+    if inclinacao is None:
+        st.info(
+            "A predição requer uma reta ajustada. Escolha uma variável X "
+            "que apresente variação nos dados."
+        )
+    else:
+        # Essas regras descrevem as variáveis oferecidas pelo Módulo 5.
+        variaveis_discretas_m5 = {
+            "spkts", "dpkts", "sbytes", "dbytes", "sttl", "dttl"
+        }
+        variaveis_ttl_m5 = {"sttl", "dttl"}
+
+        st.caption(
+            f"X: {descricoes_m5[variavel_x]}. "
+            f"Faixa observada: de {x_minimo:.10g} a {x_maximo:.10g}."
+        )
+
+        # A chave depende do par para evitar reutilizar uma entrada
+        # feita para variáveis com outros significados ou unidades.
+        x_informado = st.number_input(
+            f"Informe X — {variavel_x}",
+            value=None,
+            step=1.0 if variavel_x in variaveis_discretas_m5 else 0.1,
+            format="%.10g",
+            placeholder="Digite um valor para calcular Ŷ",
+            key=f"modulo5_predicao_{variavel_x}_{variavel_y}",
+            help=(
+                "Confirme com Enter ou saia do campo para calcular. "
+                "Valores fora da faixa observada serão sinalizados."
+            ),
+        )
+
+        if x_informado is None:
+            st.info("Informe um valor de X para consultar a reta ajustada.")
+        elif x_informado < 0:
+            st.error(
+                f"{variavel_x} não admite valores negativos neste contexto."
+            )
+        elif (
+            variavel_x in variaveis_discretas_m5
+            and not float(x_informado).is_integer()
+        ):
+            st.error(
+                f"{variavel_x} representa valores inteiros. "
+                "Informe um número sem parte fracionária."
+            )
+        elif variavel_x in variaveis_ttl_m5 and x_informado > 255:
+            st.error("O valor de TTL deve estar entre 0 e 255.")
+        else:
+            try:
+                # Consulta a função própria com os coeficientes completos.
+                y_previsto = minhastats.predicao_linear(
+                    x_informado, inclinacao, intercepto
+                )
+            except (ValueError, ArithmeticError) as erro:
+                st.error(f"Não foi possível calcular a predição: {erro}")
+            else:
+                st.metric(
+                    f"Ŷ estimado — {variavel_y}",
+                    f"{y_previsto:.10g}",
+                    help=descricoes_m5[variavel_y],
+                    border=True,
+                )
+                st.caption(
+                    f"Para {variavel_x} = {x_informado:.10g}, o modelo "
+                    f"estima {variavel_y} = {y_previsto:.10g}."
+                )
+
+                if x_informado < x_minimo or x_informado > x_maximo:
+                    st.warning(
+                        "Extrapolação: o X informado está fora da faixa "
+                        "observada no ajuste. A relação estimada pode "
+                        "não se manter nessa região."
+                    )
+                else:
+                    st.caption(
+                        "X está dentro da faixa observada. Isso, por si só, "
+                        "não garante uma predição adequada."
+                    )
+
+                # As oito variáveis deste módulo são não negativas.
+                # O resultado matemático é preservado e sua limitação é indicada.
+                if y_previsto < 0:
+                    st.warning(
+                        "A reta retornou um valor negativo, incompatível "
+                        f"com o significado de {variavel_y}. O resultado "
+                        "indica uma limitação do modelo e não deve ser "
+                        "interpretado como uma quantidade observável."
+                    )
+                elif variavel_y in variaveis_ttl_m5 and y_previsto > 255:
+                    st.warning(
+                        "A estimativa ultrapassa 255, o limite do campo TTL. "
+                        "Isso indica uma limitação do modelo para esse X."
+                    )
+
+                if variavel_y in variaveis_discretas_m5:
+                    st.caption(
+                        "A reta produz uma estimativa contínua, que pode "
+                        "ser fracionária mesmo quando Y é uma contagem "
+                        "ou outra variável inteira."
+                    )
+
+                st.caption(
+                    "Ŷ é uma estimativa pontual do modelo, sem intervalo "
+                    "de predição calculado. Não representa um registro "
+                    "observado nem uma garantia do resultado."
+                )
     st.write("Primeiros 10 registros válidos das duas variáveis selecionadas:")
     st.dataframe(dados_pares.head(10), hide_index=True, width="stretch")
