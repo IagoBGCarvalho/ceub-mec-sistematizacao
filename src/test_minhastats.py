@@ -100,3 +100,99 @@ def test_correlacao_pearson_variavel_constante():
         match="indefinida"
     ):
         minhastats.correlacao_pearson(x, y)
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (DADOS_X, DADOS_Y),
+        ([1, 2, 3, 4], [2, 4, 5, 4]),
+        ([1, 2, 3, 4], [8, 6, 4, 2]),
+        ([3, 1, 4, 2], [5, 2, 4, 4]),
+    ],
+    ids=["decimais", "com_dispersao", "decrescente", "pares_fora_de_ordem"],
+)
+def test_regressao_linear_comparacao_scipy(x, y):
+    # SciPy funciona como referência somente no arquivo de testes.
+    resultado_nosso = minhastats.regressao_linear(x, y)
+    referencia = stats.linregress(x, y)
+
+    assert resultado_nosso == pytest.approx(
+        (referencia.slope, referencia.intercept),
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize(
+    "x, y, esperado",
+    [
+        ([1, 2, 3], [3, 5, 7], (2.0, 1.0)),
+        ([1, 2, 3, 4], [2, 4, 5, 4], (0.7, 2.0)),
+        ([1, 3], [4, 8], (2.0, 2.0)),
+        ([1, 2, 3], [5, 5, 5], (0.0, 5.0)),
+        ([1, 2, 3], [-2, 1, -2], (0.0, -1.0)),
+    ],
+    ids=[
+        "reta_perfeita",
+        "exemplo_calculado_a_mao",
+        "dois_pares",
+        "y_constante",
+        "inclinacao_zero_com_y_variavel",
+    ],
+)
+def test_regressao_linear_resultados_conhecidos(x, y, esperado):
+    # Exemplos conhecidos verificam os coeficientes e a ordem do retorno.
+    resultado = minhastats.regressao_linear(x, y)
+
+    assert resultado == pytest.approx(
+        esperado,
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize(
+    "x, y, mensagem",
+    [
+        ([1, 2], [3], "mesmo tamanho"),
+        ([], [], "pelo menos 2"),
+        ([1], [2], "pelo menos 2"),
+        ([2, 2, 2], [1, 2, 3], "X é constante"),
+    ],
+    ids=["tamanhos_diferentes", "listas_vazias", "um_par", "x_constante"],
+)
+def test_regressao_linear_entradas_invalidas(x, y, mensagem):
+    with pytest.raises(ValueError, match=mensagem):
+        minhastats.regressao_linear(x, y)
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [float("nan"), float("inf"), float("-inf")],
+    ids=["nan", "infinito_positivo", "infinito_negativo"],
+)
+@pytest.mark.parametrize("coluna", ["x", "y"])
+def test_regressao_linear_valores_nao_finitos(valor, coluna):
+    x = [1.0, 2.0, 3.0]
+    y = [2.0, 4.0, 6.0]
+
+    # Verifica cada valor inválido nas duas variáveis.
+    if coluna == "x":
+        x[1] = valor
+    else:
+        y[1] = valor
+
+    with pytest.raises(ValueError, match="finitos"):
+        minhastats.regressao_linear(x, y)
+
+
+def test_regressao_linear_nao_altera_entradas():
+    x = [3, 1, 4, 2]
+    y = [5, 2, 4, 4]
+    x_original = x.copy()
+    y_original = y.copy()
+
+    minhastats.regressao_linear(x, y)
+
+    assert x == x_original
+    assert y == y_original
