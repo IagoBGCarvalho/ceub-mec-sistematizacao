@@ -274,3 +274,133 @@ def test_predicao_linear_resultado_nao_finito():
     with pytest.raises(ValueError, match="resultado|resultou"):
         minhastats.predicao_linear(
             x=1e308, inclinacao=1e308, intercepto=0.0)
+        
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (DADOS_X, DADOS_Y),
+        ([1, 2, 3, 4], [2, 4, 5, 4]),
+        ([1, 2, 3, 4], [8, 6, 4, 2]),
+        ([1, 2, 3], [-2, 1, -2]),
+    ],
+    ids=[
+        "decimais",
+        "com_dispersao",
+        "reta_decrescente_perfeita",
+        "reta_horizontal_com_y_variavel",
+    ],
+)
+def test_coeficiente_determinacao_comparacao_scipy(x, y):
+    # Integra as três funções próprias: ajustar, prever e avaliar.
+    inclinacao, intercepto = minhastats.regressao_linear(x, y)
+    y_estimado = [
+        minhastats.predicao_linear(valor, inclinacao, intercepto)
+        for valor in x
+    ]
+
+    resultado_nosso = minhastats.coeficiente_determinacao(y, y_estimado)
+
+    # R² = r² neste caso: regressão linear simples com intercepto,
+    # avaliada nos mesmos dados usados no ajuste e com Y não constante.
+    referencia = stats.linregress(x, y)
+    resultado_referencia = referencia.rvalue ** 2
+
+    assert resultado_nosso == pytest.approx(
+        resultado_referencia,
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize(
+    "y, y_estimado, esperado",
+    [
+        ([1, 2, 3], [1, 2, 3], 1.0),
+        ([1, 2, 3], [2, 2, 2], 0.0),
+        ([1, 2, 3], [3, 2, 1], -3.0),
+        ([2, 4, 5, 4], [2.7, 3.4, 4.1, 4.8], 49 / 95),
+        ([1, 3], [1, 2], 0.5),
+    ],
+    ids=[
+        "predicoes_perfeitas",
+        "predicao_pela_media",
+        "pior_que_a_media",
+        "exemplo_calculado_a_mao",
+        "dois_pares",
+    ],
+)
+def test_coeficiente_determinacao_resultados_conhecidos(
+    y, y_estimado, esperado
+):
+    resultado = minhastats.coeficiente_determinacao(y, y_estimado)
+
+    assert resultado == pytest.approx(
+        esperado,
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize(
+    "y, y_estimado, mensagem",
+    [
+        ([1, 2], [1], "mesmo tamanho"),
+        ([], [], "pelo menos 2"),
+        ([1], [1], "pelo menos 2"),
+        ([5, 5, 5], [5, 5, 5], "constantes"),
+        ([5, 5, 5], [1, 2, 3], "constantes"),
+        ([0.1, 0.1, 0.1], [0.1, 0.1, 0.1], "constantes"),
+    ],
+    ids=[
+        "tamanhos_diferentes",
+        "listas_vazias",
+        "um_par",
+        "y_constante_predicao_perfeita",
+        "y_constante_predicao_com_erros",
+        "y_constante_decimal",
+    ],
+)
+def test_coeficiente_determinacao_entradas_invalidas(
+    y, y_estimado, mensagem
+):
+    with pytest.raises(ValueError, match=mensagem):
+        minhastats.coeficiente_determinacao(y, y_estimado)
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [float("nan"), float("inf"), float("-inf")],
+    ids=["nan", "infinito_positivo", "infinito_negativo"],
+)
+@pytest.mark.parametrize("coluna", ["y", "y_estimado"])
+def test_coeficiente_determinacao_valores_nao_finitos(valor, coluna):
+    y = [1.0, 2.0, 3.0]
+    y_estimado = [1.1, 1.9, 3.2]
+
+    if coluna == "y":
+        y[1] = valor
+    else:
+        y_estimado[1] = valor
+
+    with pytest.raises(ValueError, match="finitos"):
+        minhastats.coeficiente_determinacao(y, y_estimado)
+
+
+def test_coeficiente_determinacao_nao_altera_entradas():
+    y = [2, 4, 5, 4]
+    y_estimado = [2.7, 3.4, 4.1, 4.8]
+    y_original = y.copy()
+    y_estimado_original = y_estimado.copy()
+
+    minhastats.coeficiente_determinacao(y, y_estimado)
+
+    assert y == y_original
+    assert y_estimado == y_estimado_original
+
+
+def test_coeficiente_determinacao_somas_nao_finitas():
+    # Os valores de entrada são finitos, mas seus quadrados excedem a faixa numérica de float. A função deve informar o problema.
+    with pytest.raises(ValueError, match="não finitas"):
+        minhastats.coeficiente_determinacao(
+            [-1e308, 1e308], [0.0, 0.0]
+        )
