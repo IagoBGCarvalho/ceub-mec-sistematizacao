@@ -126,33 +126,23 @@ def covariancia(x, y, amostral=True):
 def correlacao_pearson(x, y):
     """
     Calcula o coeficiente de correlação linear de Pearson (r).
-
-    Fórmula:
-        r = Cov(X, Y) / (Sx * Sy)
-
-    onde:
-        Cov(X, Y) = covariância amostral entre X e Y
-        Sx = desvio padrão amostral de X
-        Sy = desvio padrão amostral de Y
+    Fórmula:r = Cov(X, Y) / (Sx * Sy) onde:
+    Cov(X, Y) = covariância amostral entre X e Y
+    Sx = desvio padrão amostral de X
+    Sy = desvio padrão amostral de Y
 
     Retorna:
-        float: coeficiente de correlação de Pearson.
+    float: coeficiente de correlação de Pearson.
 
     Levanta:
-        ValueError: se as listas tiverem tamanhos diferentes,
-                    possuírem menos de dois pares de observações
-                    ou alguma variável for constante.
+    ValueError: se as listas tiverem tamanhos diferentes possuírem menos de dois pares de observações ou alguma variável for constante.
     """
 
     if len(x) != len(y):
-        raise ValueError(
-            "As listas X e Y devem ter o mesmo tamanho."
-        )
+        raise ValueError("As listas X e Y devem ter o mesmo tamanho.")
 
     if len(x) < 2:
-        raise ValueError(
-            "A correlação de Pearson requer pelo menos 2 pares de dados."
-        )
+        raise ValueError("A correlação de Pearson requer pelo menos 2 pares de dados.")
 
     cov = covariancia(x, y, amostral=True)
 
@@ -160,10 +150,7 @@ def correlacao_pearson(x, y):
     dp_y = desvio_padrao(y, amostral=True)
 
     if dp_x == 0 or dp_y == 0:
-        raise ValueError(
-            "A correlação de Pearson é indefinida "
-            "quando uma das variáveis é constante."
-        )
+        raise ValueError("A correlação de Pearson é indefinida, quando uma das variáveis é constante.")
 
     r = cov / (dp_x * dp_y)
 
@@ -190,11 +177,9 @@ def regressao_linear(x, y):
         tuple: (inclinacao, intercepto), sem arredondamento.
 
     Levanta:
-        ValueError: se as listas tiverem tamanhos diferentes, possuírem
-                    menos de dois pares, contiverem NaN ou infinito,
-                    ou se a variável X for constante.
+        ValueError: se as listas tiverem tamanhos diferentes, possuírem menos de dois pares, contiverem NaN ou infinito, ou se a variável X for constante.
         TypeError: se houver elementos que não sejam números reais.
-
+        
     Observações:
         Y constante é permitido e resulta em uma reta horizontal.
         A função não altera as listas recebidas.
@@ -239,6 +224,48 @@ def regressao_linear(x, y):
     intercepto = media_y - inclinacao * media_x
 
     return inclinacao, intercepto
+
+def predicao_linear(x, inclinacao, intercepto):
+    """
+    Calcula uma predição usando os coeficientes de uma reta já ajustada.
+
+    Fórmula:
+        y_estimado = intercepto + inclinacao * x
+
+    Parâmetros:
+        x: número real finito para o qual será calculada a predição.
+        inclinacao: coeficiente angular da reta, real e finito.
+        intercepto: coeficiente linear da reta, real e finito.
+
+    Retorna:
+        int ou float: valor estimado de Y, sem arredondamento.
+
+    Levanta:
+        ValueError: se alguma entrada ou o resultado não for finito.
+        TypeError: se alguma entrada não for um número real.
+
+    Observações:
+        A função utiliza os coeficientes recebidos, sem reajustar a reta.
+        Valores negativos são preservados.
+        A avaliação de extrapolação depende da faixa dos dados originais
+        e deve ser feita pela aplicação.
+    """
+    for valor in (x, inclinacao, intercepto):
+        if not math.isfinite(valor):
+            raise ValueError(
+                "X, inclinação e intercepto devem ser números finitos."
+            )
+
+    y_estimado = intercepto + inclinacao * x
+
+    # Entradas finitas muito grandes podem produzir infinito na operação.
+    if not math.isfinite(y_estimado):
+        raise ValueError(
+            "A predição resultou em um valor não finito."
+        )
+
+    # O arredondamento e a interpretação pertencem à apresentação.
+    return y_estimado
 
 def limites_iqr(dados):
     """

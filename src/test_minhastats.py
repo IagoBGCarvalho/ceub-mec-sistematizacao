@@ -196,3 +196,81 @@ def test_regressao_linear_nao_altera_entradas():
 
     assert x == x_original
     assert y == y_original
+
+@pytest.mark.parametrize(
+    "x, inclinacao, intercepto, esperado",
+    [
+        (4, 0.7, 2.0, 4.8),
+        (0, 2.0, 5.0, 5.0),
+        (3, -2.0, 10.0, 4.0),
+        (100, 0.0, 5.0, 5.0),
+        (1, 2.0, -10.0, -8.0),
+        (-2, 3.0, 1.0, -5.0),
+    ],
+    ids=[
+        "exemplo_anterior",
+        "x_zero_retorna_intercepto",
+        "inclinacao_negativa",
+        "reta_horizontal",
+        "preserva_resultado_negativo",
+        "x_negativo",
+    ],
+)
+def test_predicao_linear_resultados_conhecidos(
+    x, inclinacao, intercepto, esperado
+):
+    resultado = minhastats.predicao_linear(x, inclinacao, intercepto)
+
+    assert resultado == pytest.approx(
+        esperado,
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize("x_novo", [45.2, 49.5, 52.1])
+def test_predicao_linear_integracao_com_regressao(x_novo):
+    # Usa as duas funções próprias em sequência.
+    inclinacao, intercepto = minhastats.regressao_linear(DADOS_X, DADOS_Y)
+    resultado_nosso = minhastats.predicao_linear(
+        x_novo, inclinacao, intercepto
+    )
+
+    # Referência independente: ajuste com SciPy e avaliação com NumPy.
+    referencia = stats.linregress(DADOS_X, DADOS_Y)
+
+    # NumPy recebe os coeficientes em ordem crescente de potência: a + b*x.
+    resultado_referencia = np.polynomial.polynomial.polyval(
+        x_novo, [referencia.intercept, referencia.slope]
+    )
+
+    assert resultado_nosso == pytest.approx(
+        resultado_referencia,
+        rel=TOLERANCIA_RELATIVA,
+        abs=TOLERANCIA_ABSOLUTA,
+    )
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [float("nan"), float("inf"), float("-inf")],
+    ids=["nan", "infinito_positivo", "infinito_negativo"],
+)
+@pytest.mark.parametrize("parametro", ["x", "inclinacao", "intercepto"])
+def test_predicao_linear_entradas_nao_finitas(valor, parametro):
+    argumentos = {
+        "x": 2.0,
+        "inclinacao": 3.0,
+        "intercepto": 1.0,
+    }
+    argumentos[parametro] = valor
+
+    with pytest.raises(ValueError, match="finitos"):
+        minhastats.predicao_linear(**argumentos)
+
+
+def test_predicao_linear_resultado_nao_finito():
+    # Cada entrada é finita, mas o produto ultrapassa a faixa de float.
+    with pytest.raises(ValueError, match="resultado|resultou"):
+        minhastats.predicao_linear(
+            x=1e308, inclinacao=1e308, intercepto=0.0)
