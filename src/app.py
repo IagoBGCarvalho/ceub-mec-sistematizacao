@@ -260,15 +260,14 @@ elif modulo == "Módulo 4: Distribuições Teóricas":
     
     # Discussão automática do ajuste
     st.info("💡 **Discussão do Ajuste:** Repare como as curvas teóricas tentam modelar os blocos do histograma. Variáveis relacionadas a tempo (como `dur` - duração da conexão) geralmente decaem rapidamente, aproximando-se melhor do modelo **Exponencial** (linha roxa). A **Normal** (linha vermelha pontilhada) exige simetria, o que raramente ocorre no tráfego bruto de redes sem transformações logarítmicas.")
+    
 elif modulo == "Módulo 5: Correlação e Regressão Linear":
     st.header("Correlação e regressão linear")
     st.write(
-        "Escolha duas características do tráfego para observar como elas "
-        "variam em conjunto. Cada ponto representa um registro do dataset."
+        "Escolha duas características do tráfego para observar como elas variam em conjunto. Cada ponto representa um registro do dataset."
     )
     st.info(
-        "Correlação não implica causalidade. Uma associação entre duas "
-        "variáveis não demonstra que uma seja a causa da outra."
+        "Correlação não implica causalidade. Uma associação entre duas variáveis não demonstra que uma seja a causa da outra."
     )
 
     # Mantém as oito variáveis numéricas já utilizadas nos outros módulos.
@@ -337,11 +336,137 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
         st.warning("São necessários pelo menos 2 pares válidos para continuar.")
         st.stop()
 
-    # As listas têm a mesma ordem e serão usadas pelo núcleo estatístico.
+       # As mesmas listas alimentam os cálculos e o diagrama de dispersão.
+    dados_x = dados_pares[variavel_x].tolist()
     dados_x = dados_pares[variavel_x].tolist()
     dados_y = dados_pares[variavel_y].tolist()
 
-    st.subheader("Diagrama de dispersão")
+    x_minimo, x_maximo = min(dados_x), max(dados_x)
+    x_constante = all(valor == dados_x[0] for valor in dados_x)
+    y_constante = all(valor == dados_y[0] for valor in dados_y)
+
+    # None representa um resultado indisponível; zero pode ser válido.
+    inclinacao = None
+    intercepto = None
+    r_pearson = None
+    r_quadrado = None
+
+    if x_constante:
+        st.warning(
+            "X é constante neste conjunto de pares. Não é possível "
+            "determinar uma inclinação única nem calcular Pearson. "
+            "Escolha outra variável X. A dispersão permanece disponível."
+        )
+    else:
+        try:
+            # Todos os cálculos estatísticos vêm da biblioteca própria.
+            inclinacao, intercepto = minhastats.regressao_linear(
+                dados_x, dados_y
+            )
+            y_estimado = [
+                minhastats.predicao_linear(x, inclinacao, intercepto)
+                for x in dados_x
+            ]
+
+            if not y_constante:
+                r_pearson = minhastats.correlacao_pearson(dados_x, dados_y)
+                r_quadrado = minhastats.coeficiente_determinacao(
+                    dados_y, y_estimado
+                )
+
+            # Dois pontos bastam para desenhar a reta já ajustada.
+            # O ajuste acima utiliza todos os pares válidos.
+            x_reta = [x_minimo, x_maximo]
+            y_reta = [
+                minhastats.predicao_linear(x, inclinacao, intercepto)
+                for x in x_reta
+            ]
+        except (ValueError, ArithmeticError) as erro:
+            st.error(f"Não foi possível calcular o ajuste: {erro}")
+            st.stop()
+
+        st.subheader("Resultados do ajuste")
+
+        with st.container(horizontal=True):
+            st.metric(
+                "Pearson (r)",
+                "Indefinido" if r_pearson is None else f"{r_pearson:.6f}",
+                border=True,
+            )
+            st.metric(
+                "Coeficiente de determinação (R²)",
+                "Indefinido" if r_quadrado is None else f"{r_quadrado:.6f}",
+                border=True,
+            )
+            st.metric("Inclinação (b)", f"{inclinacao:.6g}", border=True)
+            st.metric("Intercepto (a)", f"{intercepto:.6g}", border=True)
+
+        sinal = "+" if inclinacao >= 0 else "−"
+        st.markdown(
+            f"**Equação ajustada:** Ŷ = {intercepto:.8g} "
+            f"{sinal} {abs(inclinacao):.8g} × X"
+        )
+        st.caption(
+            f"X representa {variavel_x}; Y representa {variavel_y}. "
+            "O arredondamento é aplicado somente à apresentação."
+        )
+
+        if y_constante:
+            st.warning(
+                "Y é constante: o ajuste é horizontal, mas Pearson e R² "
+                "são indefinidos porque não há variação nos valores de Y."
+            )
+        else:
+            if r_pearson > 0:
+                direcao = "positiva"
+            elif r_pearson < 0:
+                direcao = "negativa"
+            else:
+                direcao = "nula"
+
+            st.markdown(
+                f"**Pearson:** associação linear {direcao} neste conjunto "
+                "de pares. Valores próximos de zero não descartam "
+                "relações não lineares."
+            )
+            st.markdown(
+                f"**R²:** aproximadamente {100 * r_quadrado:.2f}% da "
+                f"variação de {variavel_y} em torno de sua média é "
+                "explicada pelo ajuste linear nestes dados."
+            )
+
+        st.markdown(
+            f"**Inclinação:** no modelo ajustado, aumentar {variavel_x} "
+            f"em uma unidade corresponde a uma variação de "
+            f"{inclinacao:.6g} unidades no valor estimado de {variavel_y}."
+        )
+        st.markdown(
+            f"**Intercepto:** o modelo estima {variavel_y} em "
+            f"{intercepto:.6g} quando {variavel_x} é igual a zero."
+        )
+
+        if not x_minimo <= 0 <= x_maximo:
+            st.caption(
+                "X = 0 está fora da faixa observada. A interpretação do "
+                "intercepto envolve extrapolação e exige cuidado."
+            )
+
+        # Uma reta sem restrições pode prever valores incompatíveis
+        # com variáveis não negativas, mesmo dentro da faixa observada.
+        if min(dados_y) >= 0 and min(y_estimado) < 0:
+            st.warning(
+                "Y possui apenas valores observados não negativos, mas "
+                "a reta produz estimativas negativas para parte dos "
+                "valores de X observados. Isso indica uma limitação do "
+                "modelo linear para representar essa variável."
+            )
+
+        st.caption(
+            "O R² foi calculado nos mesmos dados usados para ajustar "
+            "a reta. Ele não mede, por si só, o desempenho em novos dados."
+        )
+
+    st.subheader("Diagrama de dispersão e reta ajustada")
 
     fig_m5, ax_m5 = plt.subplots(figsize=(10, 5))
     ax_m5.scatter(
@@ -351,20 +476,33 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
         alpha=0.25,
         color="steelblue",
         linewidths=0,
+        label="Registros observados",
     )
+
+    # Inclinação zero também representa uma reta válida.
+    if inclinacao is not None:
+        ax_m5.plot(
+            x_reta,
+            y_reta,
+            color="darkorange",
+            linewidth=2,
+            label="Regressão por mínimos quadrados",
+        )
+
     ax_m5.set_xlabel(f"{variavel_x} — {descricoes_m5[variavel_x]}")
     ax_m5.set_ylabel(f"{variavel_y} — {descricoes_m5[variavel_y]}")
     ax_m5.set_title(f"{variavel_y} em função de {variavel_x}")
     ax_m5.grid(alpha=0.2)
+    ax_m5.legend()
     fig_m5.tight_layout()
 
     st.pyplot(fig_m5, width="stretch")
     plt.close(fig_m5)
 
     st.caption(
-        "O gráfico utiliza todos os pares válidos, em escala linear, "
-        "com os valores extremos preservados. Pontos sobrepostos podem "
-        "representar vários registros."
+        "Todos os pares válidos são utilizados, em escala linear e com "
+        "valores extremos preservados. Quando disponível, a reta é "
+        "exibida entre o menor e o maior X observado."
     )
 
     st.subheader("Conferência dos pares")
