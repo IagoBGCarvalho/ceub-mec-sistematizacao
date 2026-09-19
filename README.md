@@ -30,9 +30,9 @@ O sistema busca conectar teoria e prática por meio de:
 
 ## 👥 Participantes do Projeto
 
-* Iago Batista Gomes de Carvalho
-* Marcos Paulo
-* Caio Sacramento Côrtes
+* Iago Batista Gomes de Carvalho - 72650448 
+* Marcos Paulo Dos Santos Júnior - 72650390
+* Caio Sacramento Côrtes - 72650430
 
 ---
 
@@ -410,6 +410,6 @@ Projeto desenvolvido para a disciplina de Matemática e Estatística para Comput
 
 Participantes:
 
-* Iago Batista Gomes de Carvalho
-* Marcos Paulo
-* Caio Sacramento Côrtes
+* Iago Batista Gomes de Carvalho - 72650448 
+* Marcos Paulo dos Santos Júnior - 72650390 
+* Caio Sacramento Côrtes - 72650430
