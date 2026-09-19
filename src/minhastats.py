@@ -169,6 +169,77 @@ def correlacao_pearson(x, y):
 
     return r
 
+def regressao_linear(x, y):
+    """
+    Calcula os coeficientes da regressão linear simples por mínimos quadrados.
+
+    Modelo:
+        y_estimado = intercepto + inclinacao * x
+
+    Parâmetros:
+        x: lista de números reais finitos da variável explicativa.
+        y: lista de números reais finitos da variável resposta.
+           Os valores x[i] e y[i] devem pertencer à mesma observação.
+
+    Fórmulas:
+        inclinacao = Σ((x_i - media_x) * (y_i - media_y))
+                     / Σ((x_i - media_x) ** 2)
+        intercepto = media_y - inclinacao * media_x
+
+    Retorna:
+        tuple: (inclinacao, intercepto), sem arredondamento.
+
+    Levanta:
+        ValueError: se as listas tiverem tamanhos diferentes, possuírem
+                    menos de dois pares, contiverem NaN ou infinito,
+                    ou se a variável X for constante.
+        TypeError: se houver elementos que não sejam números reais.
+
+    Observações:
+        Y constante é permitido e resulta em uma reta horizontal.
+        A função não altera as listas recebidas.
+    """
+    # Evita que zip descarte silenciosamente valores da lista mais longa.
+    if len(x) != len(y):
+        raise ValueError("As listas X e Y devem ter o mesmo tamanho.")
+
+    if len(x) < 2:
+        raise ValueError(
+            "A regressão linear requer pelo menos 2 pares de dados."
+        )
+
+    # NaN e infinito não podem participar de um ajuste numérico válido.
+    for xi, yi in zip(x, y):
+        if not math.isfinite(xi) or not math.isfinite(yi):
+            raise ValueError(
+                "As listas X e Y devem conter apenas números finitos."
+            )
+
+    # Reutiliza a média implementada e validada pela equipe.
+    media_x = media(x)
+    media_y = media(y)
+
+    soma_produtos = 0.0
+    soma_quadrados_x = 0.0
+
+    # Acumula o numerador e o denominador usando desvios das médias.
+    for xi, yi in zip(x, y):
+        desvio_x = xi - media_x
+        desvio_y = yi - media_y
+        soma_produtos += desvio_x * desvio_y
+        soma_quadrados_x += desvio_x ** 2
+
+    # Sem variação em X, não é possível determinar uma inclinação única.
+    if soma_quadrados_x == 0:
+        raise ValueError(
+            "A regressão linear é indefinida quando a variável X é constante."
+        )
+
+    inclinacao = soma_produtos / soma_quadrados_x
+    intercepto = media_y - inclinacao * media_x
+
+    return inclinacao, intercepto
+
 def limites_iqr(dados):
     """
     Calcula os limites inferior e superior para detecção de outliers usando o IQR.
