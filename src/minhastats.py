@@ -267,6 +267,81 @@ def predicao_linear(x, inclinacao, intercepto):
     # O arredondamento e a interpretação pertencem à apresentação.
     return y_estimado
 
+def coeficiente_determinacao(y, y_estimado):
+    """
+    Calcula o coeficiente de determinação (R²) a partir das predições.
+
+    Fórmula:
+        R² = 1 - soma_quadrados_residuos / soma_quadrados_total
+
+    Parâmetros:
+        y: sequência de valores observados, com pelo menos 2 elementos.
+        y_estimado: sequência de valores estimados, na mesma ordem de y.
+        As duas sequências devem ter o mesmo tamanho e números reais finitos.
+
+    Retorna:
+        float: valor de R², sem arredondamento.
+        Valores negativos são preservados: indicam erros maiores do que
+        os obtidos ao prever a média dos valores observados.
+
+    Levanta:
+        ValueError: se os tamanhos forem diferentes, houver menos de
+            2 pares, valores não finitos, Y constante ou resultados
+            intermediários/final não finitos, ou se a variação de Y
+            desaparecer por limitações da precisão numérica.
+        TypeError: se algum elemento não for um número real.
+
+    Observações:
+        Não ajusta uma regressão nem gera predições.
+        Para Y constante, R² é indefinido, mesmo com predições perfeitas,
+        pois a soma dos quadrados total é zero.
+        As sequências recebidas não são alteradas.
+    """
+    if len(y) != len(y_estimado):
+        raise ValueError("Y observado e Y estimado devem ter o mesmo tamanho.")
+
+    if len(y) < 2:
+        raise ValueError("São necessários pelo menos 2 pares de valores.")
+
+    for observado, estimado in zip(y, y_estimado):
+        if not math.isfinite(observado) or not math.isfinite(estimado):
+            raise ValueError("Os valores observados e estimados devem ser finitos.")
+
+    # Verifica os valores diretamente: a média de decimais repetidos
+    # pode apresentar uma pequena diferença de arredondamento.
+    if all(observado == y[0] for observado in y):
+        raise ValueError("O R² é indefinido quando os valores observados de Y são constantes.")
+
+    # Reutiliza a média implementada anteriormente.
+    media_y = media(y)
+    soma_quadrados_residuos = 0.0
+    soma_quadrados_total = 0.0
+
+    for observado, estimado in zip(y, y_estimado):
+        # Resíduo: diferença entre o valor real e a predição.
+        residuo = observado - estimado
+
+        # Referência: diferença entre o valor real e a média observada.
+        desvio = observado - media_y
+
+        soma_quadrados_residuos += residuo * residuo
+        soma_quadrados_total += desvio * desvio
+
+    # Entradas finitas ainda podem gerar somas que excedem a faixa de float.
+    if (
+        not math.isfinite(soma_quadrados_residuos)
+        or not math.isfinite(soma_quadrados_total)
+    ):
+        raise ValueError("O cálculo do R² produziu somas não finitas.")
+    if soma_quadrados_total == 0:
+        raise ValueError("A variação de Y ficou numericamente nula no cálculo do R².")     
+    r_quadrado = 1.0 - soma_quadrados_residuos / soma_quadrados_total
+
+    if not math.isfinite(r_quadrado):
+        raise ValueError("O cálculo do R² resultou em um valor não finito.")
+
+    return r_quadrado
+
 def limites_iqr(dados):
     """
     Calcula os limites inferior e superior para detecção de outliers usando o IQR.
