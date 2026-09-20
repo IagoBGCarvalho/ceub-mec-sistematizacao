@@ -1,105 +1,84 @@
 # Relatório da sistematização de Matemática e Estatística para a Computação
 # Módulo 6
-## 🔬 As 3 Descobertas Estatísticas Mais Interessantes do Laboratório
 
-Após a análise do dataset **UNSW-NB15**, contendo **175.341 registros de tráfego de rede**, foram identificados três padrões estatísticos que se destacaram tanto pela relevância matemática quanto pela importância para aplicações em cyber-segurança.
+## 🔬 As 3 Descobertas Estatísticas Mais Relevantes do Laboratório
+
+Após a aplicação dos conceitos de Estatística Descritiva, Probabilidade, Correlação e Análise de Dados sobre o dataset UNSW-NB15, foram identificados três padrões estatísticos que se destacaram tanto pela relevância matemática quanto pela importância para aplicações em cyber-segurança.
+
+O conjunto analisado contém 175.341 registros de tráfego de rede, incluindo conexões legítimas e diferentes categorias de ataques cibernéticos. A análise foi realizada utilizando os algoritmos implementados na biblioteca `minhastats.py` e os recursos de visualização desenvolvidos na aplicação.
 
 ---
 
-# 1. O Dataset é Fortemente Dominado por Tráfego Malicioso
+# 1. Predominância de Tráfego Malicioso no Dataset
 
-## Resultado Encontrado
-
-Distribuição das classes:
+## Resultado Obtido
 
 | Classe | Quantidade | Percentual |
 | ------ | ---------: | ---------: |
 | Ataque |    119.341 |     68,06% |
 | Normal |     56.000 |     31,94% |
 
-Total de registros:
+Total de registros analisados: **175.341 conexões**.
 
-**175.341 conexões**
+## Análise
 
-## O Que Isso Significa
+A primeira descoberta relevante foi a identificação de um forte desbalanceamento entre as classes do dataset.
 
-A primeira descoberta relevante foi perceber que o conjunto de dados não possui uma distribuição equilibrada entre tráfego legítimo e tráfego malicioso.
+Os registros classificados como ataques representam aproximadamente 68% do conjunto de dados, enquanto as conexões normais representam apenas 32%.
 
-Em termos probabilísticos:
+Sob a perspectiva probabilística, isso significa que uma observação selecionada aleatoriamente possui mais que o dobro de chance de representar uma atividade maliciosa do que uma conexão legítima.
 
-* A chance de selecionar aleatoriamente um ataque é de aproximadamente **68%**.
-* A chance de selecionar uma conexão normal é de aproximadamente **32%**.
+Durante os experimentos envolvendo a Lei dos Grandes Números, observou-se que a frequência relativa de ataques tende a convergir para aproximadamente 68% conforme o tamanho da amostra aumenta.
 
-Isso significa que existe mais que o dobro de registros maliciosos em comparação aos registros legítimos.
+Esse comportamento demonstra, na prática, um dos principais conceitos estudados na disciplina: quanto maior a quantidade de observações, mais a frequência observada se aproxima da probabilidade real do fenômeno.
 
-## Importância Estatística
+## Importância
 
-Esse comportamento foi visualizado claramente nas distribuições de frequência geradas pelo laboratório.
-
-Além disso, o experimento da **Lei dos Grandes Números** mostrou que, conforme o tamanho da amostra aumenta, a frequência observada de ataques converge para aproximadamente 68%, validando empiricamente um dos principais teoremas estudados na disciplina.
-
-## Relevância para Cyber-segurança
-
-Essa predominância evidencia que o UNSW-NB15 foi construído especificamente para pesquisas de detecção de intrusão e análise de ameaças.
-
-Consequentemente:
-
-* eventos maliciosos tornam-se estatisticamente representativos;
-* análises de probabilidade tornam-se mais robustas;
-* algoritmos de classificação conseguem aprender melhor os padrões de ataque.
+Essa descoberta evidencia que o dataset UNSW-NB15 foi construído com forte foco em pesquisas de detecção de intrusão, permitindo que eventos maliciosos sejam suficientemente representativos para análises estatísticas, experimentos probabilísticos e aplicações de aprendizado de máquina.
 
 ---
 
-# 2. O Campo TTL (sttl) Apresenta Forte Associação com Ataques
+# 2. O Campo TTL (sttl) Apresentou a Associação Estatística Mais Forte com Ataques
 
-## Resultado Encontrado
+## Resultado Obtido
 
-Foi calculada a correlação entre as variáveis numéricas e a variável de classificação (**label**).
+Para a análise de correlação, a variável de classificação (`label`) foi codificada numericamente, atribuindo:
+
+* 0 para conexões normais;
+* 1 para conexões classificadas como ataque.
 
 As maiores correlações observadas foram:
 
-| Variável     | Correlação Absoluta com Label |
-| ------------ | ----------------------------: |
-| sttl         |                         0,693 |
-| ct_state_ttl |                         0,578 |
-| dload        |                         0,394 |
-| rate         |                         0,338 |
+| Variável     | Correlação com Label |
+| ------------ | -------------------: |
+| sttl         |                0,693 |
+| ct_state_ttl |                0,578 |
+| dload        |                0,394 |
+| rate         |                0,338 |
 
-## O Que Isso Significa
+## Análise
 
-A variável **sttl (Source Time To Live)** apresentou correlação de aproximadamente **0,693** com a classificação das conexões.
+Entre todos os atributos analisados, o campo **sttl (Source Time To Live)** apresentou a maior correlação individual com a classificação das conexões.
 
-Na prática, isso representa uma associação estatística forte.
+O coeficiente de correlação obtido foi aproximadamente 0,693, indicando uma associação forte entre o valor de TTL e a probabilidade de uma conexão ser classificada como ataque.
 
-Quanto maior a correlação, maior a capacidade da variável em diferenciar comportamentos normais e maliciosos.
+Em termos estatísticos, esse resultado sugere que o comportamento do TTL difere significativamente entre tráfego legítimo e tráfego malicioso.
 
-## Importância Estatística
+A análise indica que esse atributo possui elevado potencial discriminatório, tornando-se um dos indicadores mais informativos observados durante o laboratório.
 
-Entre dezenas de atributos analisados, o TTL destacou-se como um dos indicadores mais informativos do conjunto.
+## Importância
 
-Isso sugere que existe uma diferença consistente no comportamento dos pacotes quando comparados:
+Esse resultado é particularmente relevante porque TTL é uma informação presente em praticamente todos os pacotes IP e pode ser coletada com baixo custo computacional.
 
-* tráfego legítimo;
-* tráfego malicioso.
-
-## Relevância para Cyber-segurança
-
-O resultado é especialmente importante porque TTL é uma informação:
-
-* simples de coletar;
-* disponível em praticamente todo pacote IP;
-* barata computacionalmente;
-* utilizável em sistemas de monitoramento em tempo real.
-
-Em outras palavras, um único campo do cabeçalho de rede demonstrou possuir alto poder discriminatório para identificação de ataques.
+Consequentemente, trata-se de uma característica potencialmente útil para sistemas de monitoramento de rede, análise de tráfego e mecanismos de detecção de intrusão em tempo real.
 
 ---
 
-# 3. O Dataset Possui Variáveis Quase Redundantes
+# 3. Existência de Multicolinearidade Entre Variáveis da Rede
 
-## Resultado Encontrado
+## Resultado Obtido
 
-A matriz de correlação revelou pares de variáveis com correlação extremamente elevada.
+A matriz de correlação revelou pares de variáveis com associação extremamente elevada.
 
 Os principais casos observados foram:
 
@@ -111,125 +90,63 @@ Os principais casos observados foram:
 | swin × dwin               |      0,990 |
 | ct_srv_src × ct_srv_dst   |      0,980 |
 
-## O Que Isso Significa
+## Análise
 
-Correlação próxima de 1 indica que duas variáveis apresentam comportamento praticamente idêntico.
+A terceira descoberta importante foi a identificação de pares de variáveis com correlação próxima de 1.
 
-No caso de:
+Correlação tão elevada indica que determinadas variáveis apresentam comportamento praticamente idêntico ao longo do conjunto de dados.
 
-**is_ftp_login × ct_ftp_cmd**
+O caso mais evidente ocorreu entre `is_ftp_login` e `ct_ftp_cmd`, cuja correlação atingiu valor praticamente perfeito.
 
-a correlação foi praticamente perfeita.
+Esse comportamento caracteriza um fenômeno conhecido como **multicolinearidade**, situação em que diferentes variáveis carregam informações muito semelhantes sobre o sistema analisado.
 
-Isso significa que ambas carregam quase a mesma informação estatística.
+## Importância
 
-## Importância Estatística
+A presença de multicolinearidade possui impacto direto em projetos de Ciência de Dados e Aprendizado de Máquina.
 
-Essa descoberta evidencia um fenômeno conhecido como **multicolinearidade**.
-
-Multicolinearidade ocorre quando várias variáveis descrevem o mesmo comportamento do sistema.
-
-As consequências incluem:
+Quando múltiplas variáveis representam praticamente o mesmo comportamento, podem ocorrer:
 
 * aumento da redundância dos dados;
 * modelos mais complexos sem ganho de informação;
 * maior consumo computacional;
-* dificuldade de interpretação dos resultados.
+* dificuldade na interpretação dos resultados.
 
-## Relevância para Ciência de Dados
+Por esse motivo, análises de correlação são frequentemente utilizadas como etapa preliminar para seleção de atributos e redução de dimensionalidade.
 
-Essa descoberta demonstra que nem toda variável adiciona conhecimento novo ao modelo.
+---
 
-Antes da construção de algoritmos de Machine Learning, variáveis altamente correlacionadas normalmente são:
+# Validação dos Resultados
 
-* removidas;
-* agrupadas;
-* transformadas.
+Todos os algoritmos estatísticos utilizados durante o laboratório foram submetidos a uma suíte automatizada de testes.
 
-Essa etapa reduz ruído e melhora a eficiência dos modelos.
+Os cálculos implementados na biblioteca `minhastats.py` foram comparados com bibliotecas científicas amplamente utilizadas na comunidade acadêmica, incluindo NumPy e SciPy.
+
+Resultado da validação:
+
+* 75 testes executados;
+* 75 testes aprovados;
+* 0 falhas;
+* 0 erros.
+
+Os testes validaram funcionalidades relacionadas a:
+
+* correlação de Pearson;
+* regressão linear;
+* coeficiente de determinação (R²);
+* estatística descritiva;
+* tratamento de valores inválidos;
+* casos de borda e situações matematicamente indefinidas.
 
 ---
 
 # Conclusão
 
-As análises realizadas revelaram três características fundamentais do UNSW-NB15:
+As análises realizadas demonstraram que técnicas estatísticas permitem identificar padrões relevantes em grandes volumes de dados de rede.
 
-1. O conjunto possui forte predominância de tráfego malicioso (68,06% dos registros).
-2. O atributo TTL (sttl) é um dos indicadores mais relevantes para distinguir ataques de conexões normais.
-3. Existem grupos de variáveis com correlação quase perfeita, evidenciando redundância estrutural nos dados.
+Os resultados obtidos evidenciaram três características fundamentais do dataset UNSW-NB15:
 
-Essas descobertas demonstram como ferramentas estatísticas permitem identificar padrões ocultos em grandes volumes de dados e mostram, na prática, a aplicação de conceitos de Probabilidade, Correlação, Estatística Descritiva e Inferência Estatística no contexto de cyber-segurança.
-# Descobertas Estatísticas com Referência aos Gráficos
-# 1. O Dataset é Fortemente Dominado por Tráfego Malicioso
+1. Predominância significativa de tráfego malicioso, representando aproximadamente 68% das observações.
+2. Elevada associação entre o atributo TTL (sttl) e a classificação das conexões, tornando-o um dos indicadores mais informativos do conjunto.
+3. Existência de grupos de variáveis altamente correlacionadas, revelando a presença de multicolinearidade e redundância estrutural nos dados.
 
-[...]
-
-## Evidência Visual
-
-Essa característica pode ser observada no **Gráfico 1 – Distribuição das Classes do Dataset**, gerado pela aplicação.
-
-**Gráfico 1 – Distribuição de Conexões Normais e Ataques**
-
-O gráfico evidencia visualmente a predominância de registros classificados como ataque em relação às conexões normais, demonstrando um desbalanceamento significativo entre as classes.
-
-A diferença observada entre as barras confirma os resultados obtidos na análise estatística, onde aproximadamente 68,06% dos registros pertencem à classe de ataque.
-
-Além disso, no experimento da Lei dos Grandes Números, representado pelo **Gráfico 2 – Convergência da Frequência Relativa dos Ataques**, observa-se que a proporção de ataques tende a estabilizar em torno de 68% à medida que o número de observações aumenta, validando empiricamente a teoria probabilística estudada.
-
----
-
-# 2. O Campo TTL (sttl) Apresenta Forte Associação com Ataques
-
-[...]
-
-## Evidência Visual
-
-A relação entre a variável **sttl** e a classificação das conexões pode ser observada no **Gráfico 3 – Correlação dos Atributos com a Variável Label**.
-
-**Gráfico 3 – Correlação Absoluta dos Principais Atributos com Label**
-
-Nesse gráfico, a variável **sttl** apresenta uma das maiores magnitudes de correlação entre todos os atributos analisados.
-
-Visualmente, sua barra destaca-se em relação às demais variáveis, indicando forte capacidade de diferenciação entre tráfego legítimo e tráfego malicioso.
-
-O resultado é consistente com o coeficiente de correlação calculado pelo laboratório (≈ 0,693), classificando essa associação como forte para dados reais de rede.
-
----
-
-# 3. O Dataset Possui Variáveis Quase Redundantes
-
-[...]
-
-## Evidência Visual
-
-A existência de relações extremamente fortes entre determinadas variáveis pode ser observada na **Matriz de Correlação** produzida pela aplicação.
-
-**Gráfico 4 – Heatmap da Matriz de Correlação**
-
-No heatmap, os pares:
-
-* is_ftp_login × ct_ftp_cmd
-* dbytes × dloss
-* sbytes × sloss
-* swin × dwin
-* ct_srv_src × ct_srv_dst
-
-aparecem com intensidade máxima de correlação, indicando dependência estatística quase perfeita.
-
-As regiões mais escuras (ou mais claras, dependendo da paleta utilizada) concentram-se justamente nesses pares de atributos, evidenciando visualmente a presença de multicolinearidade.
-
-Essa observação gráfica reforça os coeficientes calculados numericamente, alguns deles superiores a 0,99, revelando que certas variáveis carregam praticamente a mesma informação.
-
----
-
-## Referência dos Gráficos Utilizados
-
-**Gráfico 1.** Distribuição das Classes do Dataset (Normal × Ataque)
-
-**Gráfico 2.** Demonstração da Lei dos Grandes Números para Frequência de Ataques
-
-**Gráfico 3.** Correlação dos Principais Atributos com a Variável Label
-
-**Gráfico 4.** Heatmap da Matriz de Correlação das Variáveis Numéricas
-
-Todos os gráficos foram gerados pela própria aplicação desenvolvida para o laboratório, utilizando os dados do dataset UNSW-NB15 e os algoritmos estatísticos implementados na biblioteca `minhastats.py`.
+Essas descobertas demonstram a aplicação prática dos conceitos estudados ao longo da disciplina, conectando Estatística Descritiva, Probabilidade, Correlação e Inferência Estatística a problemas reais de análise de dados e cyber-segurança.
