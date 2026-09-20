@@ -184,6 +184,10 @@ Aplicado sobre:
 
 * PyTest
 
+### Conteinerização
+
+* Docker
+
 ---
 
 ## 📁 Estrutura do Projeto
@@ -614,7 +618,7 @@ O cálculo de R² contempla inclusive casos onde o modelo é pior que utilizar s
 
 ## 🎮 Como Executar
 
-### Execução via Docker
+### Execução via Docker (recomendado)
 
 A aplicação foi empacotada em um contêiner Linux leve configurado com *multi-stage build* e permissões *rootless* para garantir segurança e isolamento total de dependências.
 
@@ -622,22 +626,27 @@ A aplicação foi empacotada em um contêiner Linux leve configurado com *multi-
 * **Linux / macOS:** Docker Engine instalado.
 * **Windows:** Instale o [Docker Desktop](https://www.docker.com/products/docker-desktop/). Durante a instalação, mantenha a opção **"Use WSL 2 instead of Hyper-V"** ativada. O WSL 2 utiliza um kernel Linux real, garantindo máxima performance e compatibilidade com o contêiner.
 
-#### Opção 1: Construir a imagem desta versão
+#### Opção 1: Imagem publicada pelo projeto de origem
 
-Esta é a opção adequada para executar exatamente o código presente no fork:
+Para baixar a versão mais recente, basta usar a tag `latest`:
+
+```bash
+docker run -d --name mec-stats -p 8501:8501 iagobgc/ceub-mec-sistematizacao:latest
+```
+
+Ou você pode escolher uma versão específica como a `0.2.0` com:
+
+```bash
+docker run -d --name mec-stats -p 8501:8501 iagobgc/ceub-mec-sistematizacao:0.2.0
+```
+
+#### Opção 2: Construir a imagem desta versão
+
+Esta é a opção adequada para manipular o código:
 
 ```bash
 docker build -t ceub-mec-sistematizacao:local .
 docker run -d --name mec-stats -p 8501:8501 ceub-mec-sistematizacao:local
-```
-
-#### Opção 2: Imagem publicada pelo projeto de origem
-
-A imagem abaixo pertence à versão `0.1.0` publicada pelo projeto de origem e
-pode não conter as alterações deste fork:
-
-```bash
-docker run -d --name mec-stats -p 8501:8501 iagobgc/ceub-mec-sistematizacao:0.1.0
 ```
 
 #### Acessando a Aplicação
@@ -718,34 +727,6 @@ python -m streamlit run src/app.py
 ```bash
 python -m pytest -v
 ```
-
-### Publicar no Streamlit Community Cloud
-
-O repositório já está preparado para uma futura publicação no Streamlit
-Community Cloud. A plataforma executa o aplicativo a partir da raiz do
-repositório, instala as dependências declaradas e aceita o arquivo principal em
-uma subpasta.
-
-Use estas coordenadas na tela **Create app**:
-
-| Campo | Valor |
-| --- | --- |
-| Repositório | `MarcosT2T/ceub-mec-sistematizacao` |
-| Branch | `main` |
-| Main file path | `src/app.py` |
-| Python | `3.12` |
-
-O aplicativo não exige chaves, senhas ou variáveis secretas. O arquivo de dados
-necessário está versionado em `data/UNSW_NB15_training-set.csv`, e o
-`requirements.txt` contém somente as seis dependências importadas diretamente
-pela aplicação. As dependências exclusivas dos testes ficam separadas em
-`requirements-dev.txt`, evitando instalá-las no servidor público.
-
-Referências oficiais:
-
-* [Organização dos arquivos no Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/file-organization)
-* [Publicação de uma aplicação](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy)
-
 ---
 
 ## 🔍 Casos de Uso
@@ -765,7 +746,7 @@ Referências oficiais:
 
 ## 📄 Licença
 
-Consultar o repositório para informações de licenciamento.
+...
 
 ---
 
