@@ -331,23 +331,67 @@ O cálculo de R² contempla inclusive casos onde o modelo é pior que utilizar s
 
 ## 🎮 Como Executar
 
-### Pré-requisitos
+### Execução via Docker (Recomendado)
+
+A aplicação foi empacotada em um contêiner Linux leve configurado com *multi-stage build* e permissões *rootless* para garantir segurança e isolamento total de dependências.
+
+#### Pré-requisitos
+* **Linux / macOS:** Docker Engine instalado.
+* **Windows:** Instale o [Docker Desktop](https://www.docker.com/products/docker-desktop/). Durante a instalação, mantenha a opção **"Use WSL 2 instead of Hyper-V"** ativada. O WSL 2 utiliza um kernel Linux real, garantindo máxima performance e compatibilidade com o contêiner.
+
+#### Opção 1: Executar a imagem pré-construída (Mais rápido)
+Basta executar o comando abaixo no seu terminal (ou PowerShell no Windows) para baixar e rodar a imagem diretamente do Docker Hub:
+
+```bash
+docker run -d --name mec-stats -p 8501:8501 iagobgc/ceub-mec-sistematizacao:0.1.0
+```
+
+#### Opção 2: Construir a imagem localmente
+Caso queira modificar o código e compilar a sua própria imagem a partir do repositório clonado:
+
+1. **Construa a imagem:**
+   ```bash
+   docker build -t ceub-mec-sistematizacao:0.1.0 .
+   ```
+
+2. **Inicie o contêiner em segundo plano:**
+   ```bash
+   docker run -d --name mec-stats -p 8501:8501 ceub-mec-sistematizacao:0.1.0
+   ```
+
+#### Acessando a Aplicação
+Independente da opção escolhida, após iniciar o contêiner, abra o seu navegador e acesse:
+👉 **http://localhost:8501**
+
+#### Comandos Úteis do Docker
+* Para visualizar os logs de execução da análise estatística em tempo real:
+  `docker logs -f mec-stats`
+* Para parar o laboratório:
+  `docker stop mec-stats`
+* Para reiniciar o laboratório:
+  `docker start mec-stats`
+* Para remover o contêiner do seu sistema:
+  `docker rm -f mec-stats`
+
+### Execução via instalação local
+
+#### Pré-requisitos
 
 * Python 3.14 ou superior
 
-### Clonar Repositório
+#### Clonar Repositório
 
 ```bash
 git clone https://github.com/IagoBGCarvalho/ceub-mec-sistematizacao.git
 ```
 
-### Entrar no Diretório
+#### Entrar no Diretório
 
 ```bash
 cd ceub-mec-sistematizacao
 ```
 
-### Criar Ambiente Virtual
+#### Criar Ambiente Virtual
 
 Linux:
 
@@ -363,13 +407,13 @@ python -m venv venv
 venv\Scripts\activate
 ```
 
-### Instalar Dependências
+#### Instalar Dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Executar Aplicação
+#### Executar Aplicação
 
 ```bash
 streamlit run src/app.py
