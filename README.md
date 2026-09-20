@@ -213,15 +213,15 @@ Suíte completa de validação matemática comparando os resultados obtidos pela
 
 ## 📊 Módulos Acadêmicos
 
-### Módulo 1
+### Módulo 1:
 
 Fundamentos de Estatística Descritiva.
 
-### Módulo 2
+### Módulo 2:
 
 Análise exploratória dos dados.
 
-### Módulo 3
+### Módulo 3:
 
 #### Lei dos Grandes Números
 
@@ -231,9 +231,13 @@ Demonstra a convergência das frequências relativas.
 
 Demonstra a convergência das distribuições amostrais para a distribuição normal.
 
-### Módulo 4
+### Módulo 4:
 
 Análises estatísticas avançadas e inferência.
+
+### Módulo 5:
+
+Correlação e Regressão Linear.
 
 ---
 
