@@ -126,33 +126,58 @@ def covariancia(x, y, amostral=True):
 def correlacao_pearson(x, y):
     """
     Calcula o coeficiente de correlação linear de Pearson (r).
-    Fórmula:r = Cov(X, Y) / (Sx * Sy) onde:
-    Cov(X, Y) = covariância amostral entre X e Y
-    Sx = desvio padrão amostral de X
-    Sy = desvio padrão amostral de Y
+
+    Fórmula:
+        r = covariancia_amostral(X, Y) / (desvio_X * desvio_Y)
+
+    Parâmetros:
+        x: sequência de números reais finitos.
+        y: sequência de números reais finitos, pareada com x.
 
     Retorna:
-    float: coeficiente de correlação de Pearson.
+        float: coeficiente de correlação de Pearson, sem arredondamento.
 
     Levanta:
-    ValueError: se as listas tiverem tamanhos diferentes possuírem menos de dois pares de observações ou alguma variável for constante.
-    """
+        ValueError: se as sequências tiverem tamanhos diferentes, menos de
+            dois pares, algum valor não finito, alguma variável constante
+            ou se o resultado do cálculo não for finito.
+        TypeError: se algum elemento não for um número real.
 
+    Observações:
+        A função usa covariância e desvios padrões amostrais. Os divisores
+        n - 1 se cancelam na razão que define Pearson.
+        As sequências recebidas não são alteradas.
+    """
     if len(x) != len(y):
         raise ValueError("As listas X e Y devem ter o mesmo tamanho.")
 
     if len(x) < 2:
-        raise ValueError("A correlação de Pearson requer pelo menos 2 pares de dados.")
+        raise ValueError(
+            "A correlação de Pearson requer pelo menos 2 pares de dados."
+        )
+
+    for xi, yi in zip(x, y):
+        if not math.isfinite(xi) or not math.isfinite(yi):
+            raise ValueError(
+                "As listas X e Y devem conter apenas números finitos."
+            )
 
     cov = covariancia(x, y, amostral=True)
-
     dp_x = desvio_padrao(x, amostral=True)
     dp_y = desvio_padrao(y, amostral=True)
 
     if dp_x == 0 or dp_y == 0:
-        raise ValueError("A correlação de Pearson é indefinida, quando uma das variáveis é constante.")
+        raise ValueError(
+            "A correlação de Pearson é indefinida quando uma das "
+            "variáveis é constante."
+        )
 
     r = cov / (dp_x * dp_y)
+
+    if not math.isfinite(r):
+        raise ValueError(
+            "O cálculo da correlação de Pearson resultou em valor não finito."
+        )
 
     return r
 

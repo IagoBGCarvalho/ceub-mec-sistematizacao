@@ -89,17 +89,62 @@ def test_correlacao_pearson():
     resultado_scipy = stats.pearsonr(DADOS_X, DADOS_Y)[0]
     assert resultado_nosso == pytest.approx(resultado_scipy,rel=TOLERANCIA_RELATIVA,abs=TOLERANCIA_ABSOLUTA)
 
-def test_correlacao_pearson_variavel_constante():
-    x = [5, 5, 5, 5]
-    y = [10, 20, 30, 40]
-
-    # Uma variavel constante possui desvio padrao zero;
-    # Nesse caso, a correlação de Person é indefinidaa
-    with pytest.raises(
-        ValueError,
-        match="indefinida"
-    ):
+@pytest.mark.parametrize(
+    "x, y, mensagem",
+    [
+        ([1, 2], [3], "mesmo tamanho"),
+        ([], [], "pelo menos 2"),
+        ([1], [2], "pelo menos 2"),
+    ],
+    ids=["tamanhos_diferentes", "listas_vazias", "um_par"],
+)
+def test_correlacao_pearson_entradas_invalidas(x, y, mensagem):
+    with pytest.raises(ValueError, match=mensagem):
         minhastats.correlacao_pearson(x, y)
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        ([5, 5, 5, 5], [10, 20, 30, 40]),
+        ([1, 2, 3, 4], [10, 10, 10, 10]),
+    ],
+    ids=["x_constante", "y_constante"],
+)
+def test_correlacao_pearson_variavel_constante(x, y):
+    with pytest.raises(ValueError, match="indefinida"):
+        minhastats.correlacao_pearson(x, y)
+
+
+@pytest.mark.parametrize(
+    "valor",
+    [float("nan"), float("inf"), float("-inf")],
+    ids=["nan", "infinito_positivo", "infinito_negativo"],
+)
+@pytest.mark.parametrize("coluna", ["x", "y"])
+def test_correlacao_pearson_valores_nao_finitos(valor, coluna):
+    x = [1.0, 2.0, 3.0]
+    y = [2.0, 4.0, 6.0]
+
+    if coluna == "x":
+        x[1] = valor
+    else:
+        y[1] = valor
+
+    with pytest.raises(ValueError, match="finitos"):
+        minhastats.correlacao_pearson(x, y)
+
+
+def test_correlacao_pearson_nao_altera_entradas():
+    x = [3, 1, 4, 2]
+    y = [5, 2, 4, 4]
+    x_original = x.copy()
+    y_original = y.copy()
+
+    minhastats.correlacao_pearson(x, y)
+
+    assert x == x_original
+    assert y == y_original
 
 @pytest.mark.parametrize(
     "x, y",
