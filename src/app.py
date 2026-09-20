@@ -1,8 +1,11 @@
 import os
-import streamlit as st
-import pandas as st_pd
+
+import matplotlib
 import pandas as pd
+import streamlit as st
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
 import minhastats
 
 # Configuração da página
@@ -92,7 +95,10 @@ if modulo == "Módulo 2: Estatística Descritiva":
         ax[0].legend()
 
         # Boxplot
-        ax[1].boxplot(dados_brutos, vert=False)
+        ax[1].boxplot(
+            dados_brutos,
+            orientation="horizontal",
+        )
         ax[1].set_title("Boxplot (Dispersão e Outliers)")
 
         st.pyplot(fig)
@@ -102,7 +108,10 @@ if modulo == "Módulo 2: Estatística Descritiva":
         frequencias = pd.cut(df[variavel_escolhida], bins=10).value_counts().sort_index().reset_index()
         frequencias.columns = ['Intervalo (Classe)', 'Frequência Absoluta']
         frequencias['Frequência Relativa (%)'] = (frequencias['Frequência Absoluta'] / len(dados_brutos)) * 100
-        st.dataframe(frequencias, use_container_width=True)
+        st.dataframe(
+            frequencias,
+            width="stretch",
+        )
 
     else:
         # Variáveis Categóricas
@@ -120,7 +129,10 @@ if modulo == "Módulo 2: Estatística Descritiva":
 
         df_freq = pd.DataFrame(list(contagem.items()), columns=['Categoria', 'Frequência Absoluta']).sort_values(by='Frequência Absoluta', ascending=False)
         df_freq['Frequência Relativa (%)'] = (df_freq['Frequência Absoluta'] / len(dados_categoricos)) * 100
-        st.dataframe(df_freq, use_container_width=True)
+        st.dataframe(
+            df_freq,
+            width="stretch",
+        )
 
         st.subheader("Gráfico de Barras")
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -232,7 +244,11 @@ elif modulo == "Módulo 4: Distribuições Teóricas":
     lambda_val = 1.0 / media_val if media_val > 0 else 0
     
     st.subheader(f"Ajuste Teórico para `{var_dist}`")
-    st.write(f"**Parâmetros Estimados:** Média ($\mu$) = {media_val:.4f} | Desvio Padrão ($\sigma$) = {dp_val:.4f} | Taxa ($\lambda$) = {lambda_val:.4f}")
+    st.write(
+        rf"**Parâmetros Estimados:** Média ($\mu$) = {media_val:.4f} | "
+        rf"Desvio Padrão ($\sigma$) = {dp_val:.4f} | "
+        rf"Taxa ($\lambda$) = {lambda_val:.4f}"
+    )
     
     # 2. Construção do Eixo X e das Curvas Teóricas
     x_min, x_max = min(dados_plot), max(dados_plot)
@@ -534,9 +550,10 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
         )
 
         st.markdown(
-            "1. **Exemplo principal — Normal × Exploits, TCP, "
-            "`spkts → dpkts`:** compara o equilíbrio de pacotes nas duas "
-            "direções com amostras grandes e o mesmo protocolo.\n"
+            "1. **Exemplo principal — Normal × Exploits × Fuzzers, TCP, "
+            "`spkts → dpkts`:** compara três grupos com amostras grandes, "
+            "o mesmo protocolo e as mesmas variáveis. Observe que inclinações "
+            "parecidas ainda podem acompanhar valores diferentes de r e R².\n"
             "2. **Alternativa — Normal × Generic, UDP, "
             "`spkts → dpkts`:** avalia uma categoria concentrada em UDP e "
             "evita misturá-la com protocolos pouco representativos.\n"
@@ -915,14 +932,15 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
 
     with st.container(border=True):
         st.subheader(
-            "Comparação controlada entre tráfego normal e ataques",
+            "Comparação controlada entre três grupos",
             icon=":material/compare_arrows:",
         )
 
         st.markdown(
-            "Esta comparação mantém **X, Y e protocolo iguais** nos dois "
-            "grupos. Assim, a diferença observada não é produzida por uma "
-            "troca simultânea dessas escolhas."
+            "Compare **tráfego Normal e dois tipos específicos de ataque** "
+            "mantendo X, Y e protocolo iguais. As categorias são mutuamente "
+            "exclusivas; por isso, o agregado `Todos os ataques` não aparece "
+            "nesta comparação."
         )
 
         mostrar_comparacao_m5 = st.toggle(
@@ -930,20 +948,22 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
             value=False,
             key="modulo5_mostrar_comparacao",
             help=(
-                "Calcula os dois ajustes com a biblioteca própria somente "
+                "Calcula três ajustes com a biblioteca própria somente "
                 "quando esta opção estiver ativada."
             ),
         )
 
         if mostrar_comparacao_m5:
-            opcoes_ataque_comparacao = [
-                "Todos os ataques",
-            ] + categorias_ataque_m5
-
-            ataque_padrao = (
-                opcoes_ataque_comparacao.index("Exploits")
-                if "Exploits" in opcoes_ataque_comparacao
+            ataque_a_padrao = (
+                categorias_ataque_m5.index("Exploits")
+                if "Exploits" in categorias_ataque_m5
                 else 0
+            )
+
+            ataque_b_padrao = (
+                categorias_ataque_m5.index("Fuzzers")
+                if "Fuzzers" in categorias_ataque_m5
+                else min(1, len(categorias_ataque_m5) - 1)
             )
 
             opcoes_protocolo_comparacao = [
@@ -957,159 +977,262 @@ elif modulo == "Módulo 5: Correlação e Regressão Linear":
             )
 
             with st.container(horizontal=True):
-                ataque_comparacao = st.selectbox(
-                    "Grupo de ataque para comparar com Normal",
-                    options=opcoes_ataque_comparacao,
-                    index=ataque_padrao,
-                    key="modulo5_ataque_comparacao",
+                ataque_a_comparacao = st.selectbox(
+                    "Primeiro tipo de ataque",
+                    options=categorias_ataque_m5,
+                    index=ataque_a_padrao,
+                    key="modulo5_ataque_a_comparacao",
+                )
+
+                ataque_b_comparacao = st.selectbox(
+                    "Segundo tipo de ataque",
+                    options=categorias_ataque_m5,
+                    index=ataque_b_padrao,
+                    key="modulo5_ataque_b_comparacao",
                 )
 
                 protocolo_comparacao = st.selectbox(
-                    "Protocolo mantido nos dois grupos",
+                    "Protocolo mantido nos três grupos",
                     options=opcoes_protocolo_comparacao,
                     index=protocolo_padrao,
                     key="modulo5_protocolo_comparacao",
                 )
 
-            if protocolo_comparacao == "Todos os protocolos":
+            if ataque_a_comparacao == ataque_b_comparacao:
                 st.warning(
-                    "A comparação mistura protocolos. Para uma demonstração "
-                    "mais controlada, escolha TCP ou UDP conforme a categoria.",
+                    "Escolha dois tipos de ataque diferentes para formar "
+                    "três grupos distintos.",
                     icon=":material/warning:",
                 )
 
-            dados_normais_comparacao = selecionar_grupo_m5(
-                df,
-                "Normal",
-            )
-
-            dados_normais_comparacao = filtrar_protocolo_m5(
-                dados_normais_comparacao,
-                protocolo_comparacao,
-            )
-
-            pares_normais_comparacao = preparar_pares_m5(
-                dados_normais_comparacao,
-                variavel_x,
-                variavel_y,
-            )
-
-            resumo_normal_comparacao = calcular_resumo_m5(
-                pares_normais_comparacao,
-                variavel_x,
-                variavel_y,
-            )
-
-            dados_ataque_comparacao = selecionar_grupo_m5(
-                df,
-                ataque_comparacao,
-            )
-
-            dados_ataque_comparacao = filtrar_protocolo_m5(
-                dados_ataque_comparacao,
-                protocolo_comparacao,
-            )
-
-            pares_ataque_comparacao = preparar_pares_m5(
-                dados_ataque_comparacao,
-                variavel_x,
-                variavel_y,
-            )
-
-            resumo_ataque_comparacao = calcular_resumo_m5(
-                pares_ataque_comparacao,
-                variavel_x,
-                variavel_y,
-            )
-
-            tabela_comparacao_m5 = pd.DataFrame(
-                [
-                    linha_comparacao_m5(
-                        "Normal",
-                        resumo_normal_comparacao,
-                    ),
-                    linha_comparacao_m5(
-                        ataque_comparacao,
-                        resumo_ataque_comparacao,
-                    ),
-                ]
-            )
-
-            st.dataframe(
-                tabela_comparacao_m5,
-                hide_index=True,
-                width="stretch",
-            )
-
-            comparacao_calculavel = (
-                resumo_normal_comparacao["r"] is not None
-                and resumo_ataque_comparacao["r"] is not None
-                and resumo_normal_comparacao["r2"] is not None
-                and resumo_ataque_comparacao["r2"] is not None
-            )
-
-            if comparacao_calculavel:
-                r_normal = resumo_normal_comparacao["r"]
-                r_ataque = resumo_ataque_comparacao["r"]
-                r2_normal = resumo_normal_comparacao["r2"]
-                r2_ataque = resumo_ataque_comparacao["r2"]
-                b_normal = resumo_normal_comparacao["inclinacao"]
-                b_ataque = resumo_ataque_comparacao["inclinacao"]
-
-                if abs(r_normal) >= abs(r_ataque):
-                    grupo_maior_alinhamento = "Normal"
-                else:
-                    grupo_maior_alinhamento = ataque_comparacao
-
-                st.markdown(
-                    f"**Leitura de Pearson:** |r| é "
-                    f"{abs(r_normal):.6f} em Normal e "
-                    f"{abs(r_ataque):.6f} em {ataque_comparacao}. "
-                    f"O maior alinhamento linear aparece em "
-                    f"**{grupo_maior_alinhamento}**, mas isso não funciona "
-                    "como regra de classificação."
-                )
-
-                st.markdown(
-                    f"**Leitura das inclinações:** para cada unidade "
-                    f"adicional de {variavel_x}, a reta altera Ŷ em "
-                    f"{b_normal:.6g} no grupo Normal e em "
-                    f"{b_ataque:.6g} no grupo {ataque_comparacao}. "
-                    "Inclinações diferentes descrevem retas diferentes; "
-                    "não demonstram que o rótulo causou essa diferença."
-                )
-
-                st.markdown(
-                    f"**Leitura do R²:** a reta representa "
-                    f"{100 * r2_normal:.2f}% da variação de "
-                    f"{variavel_y} no grupo Normal e "
-                    f"{100 * r2_ataque:.2f}% no grupo "
-                    f"{ataque_comparacao}, sempre dentro das próprias "
-                    "amostras utilizadas para ajustar cada reta."
-                )
-
-                st.caption(
-                    "A comparação é descritiva e não inclui teste de "
-                    "significância para a diferença entre coeficientes. "
-                    "Considere também o tamanho das amostras e os pontos "
-                    "extremos antes de formular uma descoberta."
-                )
-
             else:
-                st.info(
-                    "Ao menos um grupo não apresentou variação suficiente "
-                    "para calcular Pearson e R² com este par e protocolo. "
-                    "Esse também é um resultado informativo sobre o recorte.",
-                    icon=":material/info:",
+                if protocolo_comparacao == "Todos os protocolos":
+                    st.warning(
+                        "A comparação mistura protocolos. Para uma leitura "
+                        "mais controlada, escolha TCP ou UDP conforme as "
+                        "categorias selecionadas.",
+                        icon=":material/warning:",
+                    )
+
+                grupos_comparacao_m5 = [
+                    "Normal",
+                    ataque_a_comparacao,
+                    ataque_b_comparacao,
+                ]
+
+                pares_por_grupo_m5 = {}
+                resumos_por_grupo_m5 = {}
+
+                for nome_grupo_m5 in grupos_comparacao_m5:
+                    dados_grupo_m5 = selecionar_grupo_m5(
+                        df,
+                        nome_grupo_m5,
+                    )
+                    dados_grupo_m5 = filtrar_protocolo_m5(
+                        dados_grupo_m5,
+                        protocolo_comparacao,
+                    )
+                    pares_grupo_m5 = preparar_pares_m5(
+                        dados_grupo_m5,
+                        variavel_x,
+                        variavel_y,
+                    )
+                    pares_por_grupo_m5[nome_grupo_m5] = pares_grupo_m5
+                    resumos_por_grupo_m5[nome_grupo_m5] = (
+                        calcular_resumo_m5(
+                            pares_grupo_m5,
+                            variavel_x,
+                            variavel_y,
+                        )
+                    )
+
+                tabela_comparacao_m5 = pd.DataFrame(
+                    [
+                        linha_comparacao_m5(
+                            nome_grupo_m5,
+                            resumos_por_grupo_m5[nome_grupo_m5],
+                        )
+                        for nome_grupo_m5 in grupos_comparacao_m5
+                    ]
                 )
 
-            if ataque_comparacao == "Todos os ataques":
+                st.dataframe(
+                    tabela_comparacao_m5,
+                    hide_index=True,
+                    width="stretch",
+                )
+
+                cores_comparacao_m5 = [
+                    "#2E7D32",
+                    "#C62828",
+                    "#EF6C00",
+                ]
+
+                figura_comparacao_m5, eixos_comparacao_m5 = plt.subplots(
+                    1,
+                    3,
+                    figsize=(16, 4.8),
+                    sharex=True,
+                    sharey=True,
+                    constrained_layout=True,
+                )
+
+                for eixo_m5, nome_grupo_m5, cor_m5 in zip(
+                    eixos_comparacao_m5,
+                    grupos_comparacao_m5,
+                    cores_comparacao_m5,
+                ):
+                    pares_grupo_m5 = pares_por_grupo_m5[nome_grupo_m5]
+                    resumo_grupo_m5 = resumos_por_grupo_m5[nome_grupo_m5]
+
+                    eixo_m5.scatter(
+                        pares_grupo_m5[variavel_x],
+                        pares_grupo_m5[variavel_y],
+                        s=7,
+                        alpha=0.20,
+                        color=cor_m5,
+                        edgecolors="none",
+                        rasterized=True,
+                    )
+
+                    if resumo_grupo_m5["x_reta"]:
+                        eixo_m5.plot(
+                            resumo_grupo_m5["x_reta"],
+                            resumo_grupo_m5["y_reta"],
+                            color="#111827",
+                            linewidth=2.2,
+                        )
+
+                    eixo_m5.set_title(
+                        f"{nome_grupo_m5} "
+                        f"(n={formatar_inteiro_m5(resumo_grupo_m5['n'])})"
+                    )
+                    eixo_m5.set_xlabel(variavel_x)
+                    eixo_m5.grid(alpha=0.18)
+
+                eixos_comparacao_m5[0].set_ylabel(variavel_y)
+                figura_comparacao_m5.suptitle(
+                    f"{variavel_x} → {variavel_y} | "
+                    f"protocolo: {protocolo_comparacao}"
+                )
+
+                st.pyplot(figura_comparacao_m5)
+                plt.close(figura_comparacao_m5)
+
                 st.caption(
-                    "Todos os ataques reúne categorias com mecanismos e "
-                    "distribuições diferentes. Repita a análise com uma "
-                    "categoria específica antes de generalizar o resultado."
+                    "Os três painéis usam os mesmos limites dos eixos e todos "
+                    "os pares válidos de cada grupo. Se poucos extremos "
+                    "comprimirem a nuvem central, isso é um sinal para não "
+                    "interpretar r ou R² isoladamente."
                 )
 
+                comparacao_calculavel = all(
+                    resumo["r"] is not None
+                    and resumo["r2"] is not None
+                    and resumo["inclinacao"] is not None
+                    for resumo in resumos_por_grupo_m5.values()
+                )
+
+                if comparacao_calculavel:
+                    resumo_normal_m5 = resumos_por_grupo_m5["Normal"]
+                    resumo_ataque_a_m5 = resumos_por_grupo_m5[
+                        ataque_a_comparacao
+                    ]
+                    resumo_ataque_b_m5 = resumos_por_grupo_m5[
+                        ataque_b_comparacao
+                    ]
+
+                    grupo_maior_alinhamento = max(
+                        grupos_comparacao_m5,
+                        key=lambda nome: abs(
+                            resumos_por_grupo_m5[nome]["r"]
+                        ),
+                    )
+
+                    st.markdown(
+                        f"**Leitura de Pearson:** |r| é "
+                        f"{abs(resumo_normal_m5['r']):.6f} em Normal, "
+                        f"{abs(resumo_ataque_a_m5['r']):.6f} em "
+                        f"{ataque_a_comparacao} e "
+                        f"{abs(resumo_ataque_b_m5['r']):.6f} em "
+                        f"{ataque_b_comparacao}. O maior alinhamento linear "
+                        f"aparece em **{grupo_maior_alinhamento}**, mas essa "
+                        "ordenação não é uma regra de classificação."
+                    )
+
+                    st.markdown(
+                        f"**Leitura das inclinações:** a variação de Ŷ para "
+                        f"cada unidade adicional de {variavel_x} é "
+                        f"{resumo_normal_m5['inclinacao']:.6g} em Normal, "
+                        f"{resumo_ataque_a_m5['inclinacao']:.6g} em "
+                        f"{ataque_a_comparacao} e "
+                        f"{resumo_ataque_b_m5['inclinacao']:.6g} em "
+                        f"{ataque_b_comparacao}. Inclinações parecidas não "
+                        "obrigam os grupos a ter a mesma dispersão ou o mesmo "
+                        "R²."
+                    )
+
+                    st.markdown(
+                        f"**Leitura do R²:** a reta representa "
+                        f"{100 * resumo_normal_m5['r2']:.2f}% da variação de "
+                        f"{variavel_y} em Normal, "
+                        f"{100 * resumo_ataque_a_m5['r2']:.2f}% em "
+                        f"{ataque_a_comparacao} e "
+                        f"{100 * resumo_ataque_b_m5['r2']:.2f}% em "
+                        f"{ataque_b_comparacao}, dentro das próprias amostras "
+                        "usadas em cada ajuste."
+                    )
+
+                    st.markdown(
+                        f"**Tamanhos dos recortes:** "
+                        f"{formatar_inteiro_m5(resumo_normal_m5['n'])} pares "
+                        f"em Normal, "
+                        f"{formatar_inteiro_m5(resumo_ataque_a_m5['n'])} em "
+                        f"{ataque_a_comparacao} e "
+                        f"{formatar_inteiro_m5(resumo_ataque_b_m5['n'])} em "
+                        f"{ataque_b_comparacao}. Os tamanhos dos recortes "
+                        "devem ser considerados na comparação, mas o número "
+                        "de observações, isoladamente, não determina a "
+                        "estabilidade dos coeficientes."
+                    )
+
+                    st.info(
+                        "A comparação mostra que a estrutura linear pode "
+                        "mudar entre rótulos conhecidos mesmo quando o "
+                        "protocolo e as variáveis são mantidos. Ela não prova "
+                        "que o tipo de ataque causou a diferença, não testa "
+                        "formalmente se os coeficientes diferem e não valida "
+                        "um detector de intrusão.",
+                        icon=":material/fact_check:",
+                    )
+
+                else:
+                    grupos_indisponiveis = [
+                        nome_grupo_m5
+                        for nome_grupo_m5 in grupos_comparacao_m5
+                        if (
+                            resumos_por_grupo_m5[nome_grupo_m5]["r"]
+                            is None
+                            or resumos_por_grupo_m5[nome_grupo_m5]["r2"]
+                            is None
+                        )
+                    ]
+
+                    st.info(
+                        "Não foi possível completar Pearson e R² em: "
+                        f"{', '.join(grupos_indisponiveis)}. Ao menos uma "
+                        "variável ficou constante ou não houve pares "
+                        "suficientes nesse recorte. Isso também é um resultado "
+                        "do filtro, não uma falha do cálculo.",
+                        icon=":material/info:",
+                    )
+
+                st.caption(
+                    "Escopo inferencial: esta é uma comparação descritiva. "
+                    "Afirmar que as inclinações ou correlações populacionais "
+                    "são diferentes exigiria intervalos de confiança ou um "
+                    "teste específico, fora do escopo obrigatório do módulo."
+                )
     with st.container(border=True):
         st.subheader(
             "Predição interativa de Y",
