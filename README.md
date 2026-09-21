@@ -79,6 +79,7 @@ Links:
 | attack_cat | Categoria do ataque            |
 | label      | Classificação normal ou ataque |
 
+![Tela de contexto do dataset](./images/contexto.png)
 ---
 
 ## 🚀 Funcionalidades
@@ -95,6 +96,8 @@ Links:
 As bibliotecas consolidadas são usadas somente como referências independentes
 nessa página e nos testes. Os resultados analíticos dos módulos continuam sendo
 produzidos pelo núcleo `minhastats.py`.
+
+![Tela de validação](./images/validacao.png)
 
 ### Estatística Descritiva
 
@@ -453,6 +456,8 @@ Fundamentos de Estatística Descritiva.
 
 Análise exploratória dos dados.
 
+![Tela do módulo 2](./images/modulo2.png)
+
 ### Módulo 3:
 
 #### Lei dos Grandes Números
@@ -463,12 +468,16 @@ Demonstra a convergência das frequências relativas.
 
 Demonstra a convergência das distribuições amostrais para a distribuição normal.
 
+![Tela do módulo 3](./images/modulo3.png)
+
 ### Módulo 4:
 
 Sobrepõe modelos teóricos aos dados observados. A Normal é comparada com a
 Exponencial nas medidas não negativas e com a Poisson nas contagens de
 pacotes. A interface discute a qualidade relativa do ajuste sem transformar
 proximidade visual em diagnóstico de ataque ou em prova de um modelo gerador.
+
+![Tela do módulo 4](./images/modulo4.png)
 
 ### Módulo 5
 
@@ -479,6 +488,8 @@ comparação orientada mantém as mesmas variáveis e protocolo entre tráfego
 Normal e dois tipos de ataque. A interface ressalta que associação linear não
 demonstra causalidade nem funciona como classificador de ataques.
 
+![Tela do módulo 5](./images/modulo5.png)
+
 ### Módulo 6
 
 Consolida três descobertas: composição desigual das classes; duração fortemente
@@ -486,6 +497,8 @@ assimétrica, com valores além das cercas do IQR nos dois grupos; e diferenças
 na relação `spkts → dpkts` entre Normal, Exploits e Fuzzers sob TCP. Uma análise
 de sensibilidade até P99 verifica quais coeficientes permanecem estáveis quando
 a influência da cauda superior é examinada.
+
+![Tela do módulo 6](./images/modulo6.png)
 
 ---
 
